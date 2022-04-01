@@ -11,19 +11,9 @@ include_directories(./)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
-
-find_package(GLM REQUIRED)
-include_directories(${GLM_INCLUDE_DIRS})
-link_directories(${GLM_LIBRARY_DIRS})
-add_definitions(${GLM_DEFINITIONS})
-
+find_package(imgui CONFIG REQUIRED)
+find_package(glm REQUIRED)
 find_package(imgui CONFIG REQUIRED) # consider making imgui optional
-set(imgui-impl-sources
-  3rdparty/imgui/imgui_impl_glfw.h
-  3rdparty/imgui/imgui_impl_glfw.cpp
-  3rdparty/imgui/imgui_impl_opengl3.h
-  3rdparty/imgui/imgui_impl_opengl3.cpp
-)
 add_compile_definitions(IMGUI_IMPL_OPENGL_LOADER_GLEW)
 
 set(glutils-sources
@@ -74,12 +64,6 @@ source_group(fx FILES ${fx-sources})
 source_group(utils FILES ${utils-sources})
 source_group(utils FILES ${params-sources})
 
-include_directories(
-  3rdparty
-  ${GLEW_INCLUDE_DIR}
-  ${GLFW_INCLUDE_DIR}
-)
-
 add_library(toylib STATIC 
     ${glutils-sources} 
     ${fx-sources}
@@ -94,17 +78,24 @@ target_link_libraries(toylib
   ${OPENGL_LIBRARY}
 )
 
-add_executable(toy-mnoise toy-mnoise.cpp GLFWApp.h GLFWApp.cpp MCubesObject.h MCubesObject.cpp)
-target_link_libraries(toy-mnoise toylib)
-
 add_executable(toy-hello toy-hello.cpp)
-target_link_libraries(toy-hello toylib)
+target_link_libraries(toy-hello PRIVATE toylib imgui::imgui)
+
+add_executable(toy-mnoise toy-mnoise.cpp GLFWApp.h GLFWApp.cpp MCubesObject.h MCubesObject.cpp)
+target_link_libraries(toy-mnoise PRIVATE toylib imgui::imgui)
 
 add_executable(toy-glitchsphere toy-glitchsphere.cpp GLFWApp.h GLFWApp.cpp GlitchSphereGeometry.h GlitchSphereGeometry.cpp)
-target_link_libraries(toy-glitchsphere toylib)
+target_link_libraries(toy-glitchsphere PRIVATE toylib imgui::imgui)
 
-find_package (Threads)
-add_executable(test-threads test-threads.cpp)
-target_link_libraries (test-threads ${CMAKE_THREAD_LIBS_INIT})
 
-add_executable(test-params test-params.cpp ${params-sources})
+find_package(Threads)
+if(Threads_FOUND)
+    add_executable(test-threads test-threads.cpp)
+    target_link_libraries (test-threads ${CMAKE_THREAD_LIBS_INIT})
+endif()
+
+find_package(nlohmann_json)
+if(nlohmann_json_FOUND)
+    add_executable(test-params test-params.cpp ${params-sources})
+    target_link_libraries(test-params PRIVATE nlohmann_json::nlohmann_json)
+endif()

@@ -7,8 +7,8 @@ const char* MY_GLSL_VERSION = "#version 150";
 
 #ifdef ENABLE_IMGUI
 #include <imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 #endif
 
 #include <GL/glew.h>

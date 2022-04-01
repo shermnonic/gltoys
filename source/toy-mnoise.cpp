@@ -174,7 +174,8 @@ int main(int argc, char* argv[])
         }
         else if (e.type == MouseEvent::Type::ButtonPress)
         {
-            if(!ImGui::IsMouseHoveringAnyWindow())
+            ImGuiIO& io = ImGui::GetIO();
+            if(!io.WantCaptureMouse)
                 trackball.start(mousex, mousey, Trackball2::Rotate);
         }
         else if (e.type == MouseEvent::Type::ButtonRelease)

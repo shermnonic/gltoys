@@ -16,7 +16,7 @@ typedef boost::property_tree::ptree PTree;
 #define PARAMETERBASE_JSON_SERIALIZATION
 
 #ifdef PARAMETERBASE_JSON_SERIALIZATION
-#include <3rdparty/nlohmann/json.hpp>
+#include <nlohmann/json.hpp>
 #endif
 
 /**\verbatim

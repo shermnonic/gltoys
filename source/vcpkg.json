@@ -1,0 +1,14 @@
+{
+  "name": "386dx25-gltoys",
+  "version": "0.1.0",
+  "dependencies": [
+    "glew",
+    "glm",
+    "glfw3",
+    {
+        "name": "imgui",
+        "features": ["glfw-binding", "opengl3-binding"]
+    },
+    "nlohmann-json"
+  ]
+}
