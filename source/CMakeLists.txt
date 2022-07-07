@@ -44,6 +44,8 @@ set(fx-sources
   fx/PerlinNoise.cpp
   fx/MarchingCubes.h
   fx/MarchingCubes.cpp
+  fx/TilingSimplexFlowNoise.h
+  fx/TilingSimplexFlowNoise.cpp
 )
 
 set(utils-sources
@@ -81,7 +83,7 @@ target_link_libraries(toylib
 add_executable(toy-hello toy-hello.cpp)
 target_link_libraries(toy-hello PRIVATE toylib imgui::imgui)
 
-add_executable(toy-mnoise toy-mnoise.cpp GLFWApp.h GLFWApp.cpp MCubesObject.h MCubesObject.cpp)
+add_executable(toy-mnoise toy-mnoise.cpp GLFWApp.h GLFWApp.cpp MCubesObject.h MCubesObject.cpp MCubesObjectRenderer.h MCubesObjectRenderer.cpp)
 target_link_libraries(toy-mnoise PRIVATE toylib imgui::imgui)
 
 add_executable(toy-glitchsphere toy-glitchsphere.cpp GLFWApp.h GLFWApp.cpp GlitchSphereGeometry.h GlitchSphereGeometry.cpp)

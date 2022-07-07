@@ -11,18 +11,7 @@ class Trackball2
 {
 public:
     enum Mode { None, Rotate, Translate, Zoom };
-    
-    Trackball2()
-    : m_mode( None ),
-      m_trackballRadius( .8f ),
-      m_zoom( 5.f ),
-      m_speed( 10.f ),
-      m_immediateUpdate( true )
-    {
-        m_qrot = glm::fquat(1,0,0,0);
-        m_cur_qrot = glm::fquat(1,0,0,0);
-    }
-    
+  
     int getMode() const { return m_mode; }
 
     void setZoom( float zoom ) { m_zoom = zoom; }
@@ -65,7 +54,7 @@ public:
     /// Perform trackball update given two normalized view coordinates.
     void update( float bx, float by )
     {
-        const float eps = 2*std::numeric_limits<float>::epsilon();
+        constexpr float eps = 2*std::numeric_limits<float>::epsilon();
         if( fabs(bx-m_ax)<eps && fabs(by-m_ay)<eps )
             return;
 
@@ -93,19 +82,20 @@ protected:
     glm::fquat combineRotations( glm::fquat q1, glm::fquat q2 );
     
 private:
-    int m_viewWidth;
-    int m_viewHeight;
-    int m_mode;
+    int m_viewWidth = 0;
+    int m_viewHeight = 0;
+    int m_mode = None;
 
-    float m_ax, m_ay; // Previous positions
+    float m_ax = 0.f; // Previous positions 
+    float m_ay = 0.f; 
 
-    float m_trackballRadius;
+    float m_trackballRadius = .8f;
 
-    glm::fquat m_qrot;  // Rotation quaternion
-    glm::fquat m_cur_qrot; // Current, additional rotation user is performing
-    glm::vec3  m_trans; // Translation
-    float      m_zoom;  // Zoom factor
-    float      m_speed; // Speed of translation and zoom (depends on model size)
+    glm::fquat m_qrot     = glm::fquat(1,0,0,0); // Rotation quaternion
+    glm::fquat m_cur_qrot = glm::fquat(1,0,0,0); // Current, additional rotation user is performing
+    glm::vec3  m_trans    = {}; // Translation
+    float      m_zoom  = 5.f;   // Zoom factor
+    float      m_speed = 10.f;  // Speed of translation and zoom (depends on model size)
 
     bool m_immediateUpdate;
 };

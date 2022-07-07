@@ -30,7 +30,7 @@
 #include <glutils/GLSLProgram.h>
 #include <glutils/Trackball2.h>
 
-#include "MCubesObject.h"
+#include "MCubesObjectRenderer.h"
 
 
 void writeOBJtoFile(std::string filename, const MeshBuffer& meshBuffer)
@@ -147,7 +147,8 @@ public:
     }
 
 private:
-    int m_width, m_height;
+    int m_width = 0;
+    int m_height = 0;
     MCubesObjectRenderer m_mcubes;
     MeshShader m_shader{MeshVertexAttribute::Normal, GLFWApp::getGLSLVersionString()};
     bool m_isComputing = false;

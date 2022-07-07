@@ -332,7 +332,8 @@ void normalize( float* v )
 }
 
 // perform marching cubes algorithm on a single cube with custom scale factor
-void triangulate( float x, float y, float z, SampleFunc sample, float isovalue, float scale,
+void triangulate( float x, float y, float z, 
+                  SampleFunc sample, GradientFunc gradient, float isovalue, float scale,
                   float* points, float* normals, unsigned* indices, unsigned start_index,
                   unsigned& num_triangles, unsigned& num_points, void* userdata )
 {
@@ -382,13 +383,25 @@ void triangulate( float x, float y, float z, SampleFunc sample, float isovalue, 
         
         if( compute_normals )
         {
-            // central differences
-            const float delta = 0.001f;
-            float* normal = &normals[num_points*3];
-            normal[0] = sample(p[0]-delta, p[1], p[2], userdata) - sample(p[0]+delta, p[1], p[2], userdata);
-            normal[1] = sample(p[0], p[1]-delta, p[2], userdata) - sample(p[0], p[1]+delta, p[2], userdata),
-            normal[2] = sample(p[0], p[1], p[2]-delta, userdata) - sample(p[0], p[1], p[2]+delta, userdata);
-            normalize( normal );
+            if(gradient)
+            {
+                float* normal = &normals[num_points*3];
+                gradient(p[0], p[1], p[2], normal[0], normal[1], normal[2], userdata);
+                normalize( normal );
+                normal[0] *= -1;
+                normal[1] *= -1;
+                normal[2] *= -1;
+            }
+            else
+            {
+                // central differences
+                const float delta = 0.001f;
+                float* normal = &normals[num_points*3];
+                normal[0] = sample(p[0]-delta, p[1], p[2], userdata) - sample(p[0]+delta, p[1], p[2], userdata);
+                normal[1] = sample(p[0], p[1]-delta, p[2], userdata) - sample(p[0], p[1]+delta, p[2], userdata),
+                normal[2] = sample(p[0], p[1], p[2]-delta, userdata) - sample(p[0], p[1], p[2]+delta, userdata);
+                normalize( normal );
+            }
         }
 
         vi[i] = num_points;

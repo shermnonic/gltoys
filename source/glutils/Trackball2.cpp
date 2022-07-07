@@ -48,7 +48,7 @@ glm::fquat Trackball2::combineRotations( glm::fquat q1, glm::fquat q2 )
 
 void Trackball2::update( float ax, float ay, float bx, float by, int mode )
 {
-    const float eps = 2*std::numeric_limits<float>::epsilon();
+    constexpr float eps = 2*std::numeric_limits<float>::epsilon();
 
     if( mode==Rotate )
     {
