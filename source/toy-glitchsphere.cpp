@@ -126,6 +126,12 @@ int main(int argc, char* argv[])
         // Gui
         {
             ImGui::Begin("glitchsphere");
+            if(ImGui::CollapsingHeader("About"))
+            {
+                ImGui::Text("Glitchy sphere effect by www.386dx25.de.");
+                ImGui::BulletText("Play with parameters resolution & lambda.");
+                ImGui::BulletText("Rotate via left mouse button.");
+            }
             ImGui::Checkbox("Wireframe", &globals.wireframe);
             ImGui::Checkbox("Shading", &scene.uniforms().shading);
             ImGui::Checkbox("Blending", &globals.blending);
@@ -136,7 +142,7 @@ int main(int argc, char* argv[])
             ImGui::SliderFloat("Param t", &params.t, 0.f, tmax);
             ImGui::SliderFloat("Param lambda", &params.lambda, 0.f, 10.f);
             ImGui::SliderInt("Colormap", &params.colormap, 0, 10);
-            if (ImGui::Button("Save"))
+            if (ImGui::Button("Save .obj"))
             {
                 const MeshBuffer* mb = scene.meshBuffer();
                 if (mb)
@@ -153,7 +159,7 @@ int main(int argc, char* argv[])
                 app.setFullscreen(!app.isFullscreen());
             ImGui::ColorEdit3("Foreground", scene.uniforms().color);
             ImGui::ColorEdit3("Background", globals.clear_color);
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
         }
         ImGui::Render();

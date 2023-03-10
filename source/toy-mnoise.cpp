@@ -212,6 +212,14 @@ int main(int argc, char* argv[])
             if (ui_disabled)
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
 
+            if(ImGui::CollapsingHeader("About"))
+            {
+                ImGui::Text("Marching noise effect by www.386dx25.de.");
+                ImGui::BulletText("Play around with the overdraw parameter.");
+                ImGui::BulletText("Be careful when increasing resolution!");
+                ImGui::BulletText("Rotate via left mouse button.");
+            }
+
             ImGui::Checkbox("Wireframe", &globals.wireframe);
             ImGui::Checkbox("Shading", &scene.uniforms().shading);
             ImGui::Checkbox("Debug", &scene.debug);
