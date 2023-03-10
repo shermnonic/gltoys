@@ -199,6 +199,29 @@ int main(int argc, char* argv[])
     } 
     globals;
 
+    enum class Preset {
+        Reset,
+        Needles
+    };
+    auto setPreset = [&params, &globals](Preset p) {
+        switch(p)
+        {
+        case Preset::Needles:    
+            params.resolution = 4;
+            params.scale = 0.181f;
+            params.iso = -0.108f;
+            globals.zoom = 1.66f;
+            globals.wireframe = true;
+            break;
+        case Preset::Reset:
+            params = {};
+            globals = {};
+            break;
+        default:
+            break;
+        }
+    };
+
     bool ui_disabled = true;
     float computing_duration = 0.f;
     while(app.running())
@@ -208,8 +231,6 @@ int main(int argc, char* argv[])
 
         // Gui
         {
-            //ImGui::ShowDemoWindow();
-
             ImGui::Begin("mnoise");
             if (ui_disabled)
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
@@ -222,24 +243,39 @@ int main(int argc, char* argv[])
                 ImGui::BulletText("Rotate via left mouse button.");
             }
 
+            ImGui::SeparatorText("Presets");
+            if(ImGui::Button("Reset")) setPreset(Preset::Reset);
+            ImGui::SameLine();
+            if(ImGui::Button("Needles")) setPreset(Preset::Needles);
+
+            ImGui::SeparatorText("Geometry");
+            ImGui::SliderFloat("Overdraw",&params.scale,.1f,2.f);
+            ImGui::SliderInt("Resolution",&params.resolution,1,7);
+            ImGui::SliderFloat("Isovalue",&params.iso,-1.f,1.f);
+            if (ImGui::Button("Save .obj"))
+                scene.saveOBJ("mnoise.obj");
+
+            ImGui::SeparatorText("Camera");
+            ImGui::Checkbox("Animate",&globals.animate);
+            ImGui::SliderFloat("Zoom",&globals.zoom,.1f,4.2f);
             ImGui::InputFloat("PosX", &params.posx, 0.01f, 1.f, "%1.3f");
             ImGui::InputFloat("PosY", &params.posy, 0.01f, 1.f, "%1.3f");
             ImGui::InputFloat("PosZ", &params.posz, 0.01f, 1.f, "%1.3f");
+
+            ImGui::SeparatorText("Rendering");
             ImGui::Checkbox("Wireframe", &globals.wireframe);
             ImGui::Checkbox("Shading", &scene.uniforms().shading);
-            ImGui::Checkbox("Debug", &scene.debug);
-            if (ImGui::Button("Save"))
-                scene.saveOBJ("mnoise.obj");
             if (ImGui::Button("Fullscreen"))
                 app.setFullscreen(!app.isFullscreen());
-            ImGui::SliderFloat("Zoom",&globals.zoom,.1f,4.2f);
-            ImGui::SliderFloat("Scale",&params.scale,.1f,2.f);
-            ImGui::SliderInt("Resolution",&params.resolution,1,7);
-            ImGui::SliderFloat("Isovalue",&params.iso,-1.f,1.f);
             ImGui::ColorEdit3("Foreground", scene.uniforms().color);
             ImGui::ColorEdit3("Background", globals.clear_color);
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::Text(scene.info().c_str());
+
+            if(ImGui::CollapsingHeader("Stats & debug"))
+            {
+                ImGui::Checkbox("Debug colors",&scene.debug);
+                ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+                ImGui::Text(scene.info().c_str());
+            }
 
             if (ui_disabled)
                 ImGui::PopStyleVar();
