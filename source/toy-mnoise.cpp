@@ -200,6 +200,7 @@ int main(int argc, char* argv[])
     globals;
 
     bool ui_disabled = true;
+    float computing_duration = 0.f;
     while(app.running())
     {
         app.beginFrame();
@@ -273,7 +274,21 @@ int main(int argc, char* argv[])
                           * glm::mat4(trackball.getRotationMatrix()),
                          glm::perspective(glm::radians(45.f), aspect, .1f, 100.f));
 
-            ui_disabled = scene.isComputing();
+            // Avoid flicker by disabling UI only if computation takes longer than a few frames
+            bool is_computing_now = scene.isComputing();            
+            if(is_computing_now)
+            {
+                computing_duration += dt;
+                if(computing_duration >= 10.f/60.f)
+                {
+                    ui_disabled = true;
+                }
+            }
+            else
+            {
+                computing_duration = 0.f;
+                ui_disabled = false;
+            }
         }
 
         app.endFrame();
