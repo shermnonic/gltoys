@@ -195,6 +195,7 @@ int main(int argc, char* argv[])
         float clear_color[4] = { 0.45f, 0.55f, 0.60f, 1.00f };
         bool wireframe = false;
         float zoom = 2.f;
+        bool animate = true;
     } 
     globals;
 
@@ -220,6 +221,9 @@ int main(int argc, char* argv[])
                 ImGui::BulletText("Rotate via left mouse button.");
             }
 
+            ImGui::InputFloat("PosX", &params.posx, 0.01f, 1.f, "%1.3f");
+            ImGui::InputFloat("PosY", &params.posy, 0.01f, 1.f, "%1.3f");
+            ImGui::InputFloat("PosZ", &params.posz, 0.01f, 1.f, "%1.3f");
             ImGui::Checkbox("Wireframe", &globals.wireframe);
             ImGui::Checkbox("Shading", &scene.uniforms().shading);
             ImGui::Checkbox("Debug", &scene.debug);
@@ -228,9 +232,6 @@ int main(int argc, char* argv[])
             if (ImGui::Button("Fullscreen"))
                 app.setFullscreen(!app.isFullscreen());
             ImGui::SliderFloat("Zoom",&globals.zoom,.1f,4.2f);
-            ImGui::SliderFloat("PosX",&params.posx,-2.f,2.f);
-            ImGui::SliderFloat("PosY",&params.posy,-2.f,2.f);
-            ImGui::SliderFloat("PosZ",&params.posz,-2.f,2.f);
             ImGui::SliderFloat("Scale",&params.scale,.1f,2.f);
             ImGui::SliderInt("Resolution",&params.resolution,1,7);
             ImGui::SliderFloat("Isovalue",&params.iso,-1.f,1.f);
@@ -245,6 +246,8 @@ int main(int argc, char* argv[])
         }
         ImGui::Render();
         GL::clearGLError("main - ImGui::Render()");
+
+        float dt = (float)app.tic();
 
         // Frame
         {
@@ -274,6 +277,12 @@ int main(int argc, char* argv[])
         }
 
         app.endFrame();
+
+        if (globals.animate)
+        {
+            const float speed = 0.2f;
+            params.posz -= speed * dt;
+        }
     }
 
     return 0;
