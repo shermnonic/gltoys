@@ -32,6 +32,8 @@ set(glutils-sources
   glutils/GLSLProgram.cpp
   glutils/GLTexture.h
   glutils/GLTexture.cpp
+  glutils/RenderToTexture.h
+  glutils/RenderToTexture.cpp
   glutils/Trackball2.h
   glutils/Trackball2.cpp
   glutils/Frustum.h
