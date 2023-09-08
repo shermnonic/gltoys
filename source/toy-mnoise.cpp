@@ -3,19 +3,21 @@
 // [x] avoid realloc and vector copy
 // [x] compute threads
 // [x] fix gpu issues and flickering
-// [ ] trackball control
-// [ ] mnoise function controls (position, noise type)
-// [ ] offscreen hd render target
-// [ ] obj export
+// [x] trackball control
+// [x] control mnoise position (but not noise function yet)
+// [x] offscreen hd render target (no line thickness scaling, only .tga format)
+// [x] obj export
 // [ ] svg render target
 // [ ] for pure svg cli decouple parallel compute and GL render code
-#include <iostream>
-#include <cstdio>
-#include <vector>
 #include <algorithm>
-#include <sstream>
-#include <fstream>
+#include <array>
+#include <cstdio>
+#include <ctime>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <vector>
 
 #include <imgui.h>
 #include "GLFWApp.h"
@@ -28,7 +30,10 @@
 
 #include <glutils/GLError.h>
 #include <glutils/GLSLProgram.h>
+#include <glutils/OffscreenRendering.h>
 #include <glutils/Trackball2.h>
+
+#include <utils/TGA.h>
 
 #include "MCubesObjectRenderer.h"
 
@@ -206,7 +211,7 @@ int main(int argc, char* argv[])
     auto setPreset = [&params, &globals](Preset p) {
         switch(p)
         {
-        case Preset::Needles:    
+        case Preset::Needles:
             params.resolution = 4;
             params.scale = 0.181f;
             params.iso = -0.108f;
@@ -222,7 +227,28 @@ int main(int argc, char* argv[])
         }
     };
 
+    auto renderFrame = [&](int width, int height)
+    {
+        glViewport(0, 0, width, height);
+        glClearColor(globals.clear_color[0], globals.clear_color[1], globals.clear_color[2], globals.clear_color[3]);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        GL::checkGLError("main - glClear()");
+        
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_DEPTH_TEST);
+        glPolygonMode( GL_FRONT_AND_BACK, globals.wireframe ? GL_LINE : GL_FILL );
+        GL::checkGLError("main - glPolygonMode()");
+
+        scene.update(params);
+        float aspect = width/(float)height;
+        scene.render(glm::translate( glm::mat4(1.0), glm::vec3(0.f,0.f,-globals.zoom) )
+                        * glm::mat4(trackball.getRotationMatrix()),
+                        glm::perspective(glm::radians(45.f), aspect, .1f, 100.f));
+    };
+
     bool ui_disabled = true;
+    bool trigger_offscreen_rendering_screenshot = false;
     float computing_duration = 0.f;
     while(app.running())
     {
@@ -255,6 +281,9 @@ int main(int argc, char* argv[])
             if (ImGui::Button("Save .obj"))
                 scene.saveOBJ("mnoise.obj");
 
+            if(ImGui::Button("Save .tga"))
+                trigger_offscreen_rendering_screenshot = true;
+
             ImGui::SeparatorText("Camera");
             ImGui::Checkbox("Animate",&globals.animate);
             ImGui::SliderFloat("Zoom",&globals.zoom,.1f,4.2f);
@@ -270,6 +299,7 @@ int main(int argc, char* argv[])
             ImGui::ColorEdit3("Foreground", scene.uniforms().color);
             ImGui::ColorEdit3("Background", globals.clear_color);
 
+            ImGui::SeparatorText("Advanced");
             if(ImGui::CollapsingHeader("Stats & debug"))
             {
                 ImGui::Checkbox("Debug colors",&scene.debug);
@@ -293,25 +323,10 @@ int main(int argc, char* argv[])
 
             trackball.setViewSize(width, height);
 
-            glViewport(0, 0, width, height);
-            glClearColor(globals.clear_color[0], globals.clear_color[1], globals.clear_color[2], globals.clear_color[3]);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            GL::checkGLError("main - glClear()");
-        
-            glDisable(GL_CULL_FACE);
-            glEnable(GL_DEPTH_TEST);
-            glPolygonMode( GL_FRONT_AND_BACK, globals.wireframe ? GL_LINE : GL_FILL );
-            GL::checkGLError("main - glPolygonMode()");
-
-            scene.update(params);
-            float aspect = width/(float)height;
-            scene.render(glm::translate( glm::mat4(1.0), glm::vec3(0.f,0.f,-globals.zoom) )
-                          * glm::mat4(trackball.getRotationMatrix()),
-                         glm::perspective(glm::radians(45.f), aspect, .1f, 100.f));
+            renderFrame(width, height);
 
             // Avoid flicker by disabling UI only if computation takes longer than a few frames
-            bool is_computing_now = scene.isComputing();            
+            bool is_computing_now = scene.isComputing();
             if(is_computing_now)
             {
                 computing_duration += dt;
@@ -329,6 +344,47 @@ int main(int argc, char* argv[])
 
         app.endFrame();
 
+        // Offscreen rendering
+        if(trigger_offscreen_rendering_screenshot)
+        {
+            trigger_offscreen_rendering_screenshot = false;
+
+            auto getScreenshotFilename = []()
+            {
+                return L"toy-mnoise." + std::to_wstring(time(0)) + L".tga";
+            };
+
+            auto scaleLongestEdgeMaxSize = [](size_t width, size_t height) -> std::array<size_t, 2>
+            {
+                constexpr size_t MaxSize = 8096;
+                const double aspect = width /(double)height;
+                if(aspect >= 1.0) 
+                {
+                    return {MaxSize, static_cast<size_t>(MaxSize / aspect)};
+                }
+                else
+                {
+                    return {static_cast<size_t>(MaxSize * aspect), MaxSize};
+                }
+            };
+
+            const auto [width, height] = scaleLongestEdgeMaxSize((size_t)app.width(), (size_t)app.height());
+
+            OffscreenRendering renderer(width, height);
+            renderer.initGL();
+            renderer.renderBegin();
+
+            renderFrame((int)width, (int)height);
+
+            renderer.renderEnd();
+            renderer.getRawImageData();
+
+            auto format = renderer.getChannels()==4 ? TGAFormat::RGBA : TGAFormat::RGB;
+            saveTGA(std::filesystem::path(getScreenshotFilename()), format, renderer.getWidth(), renderer.getHeight(), renderer.getRawImageData());
+
+            renderer.destroyGL();
+        }
+
         if (globals.animate)
         {
             const float speed = 0.2f;
@@ -338,3 +394,5 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+
+

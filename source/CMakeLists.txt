@@ -32,6 +32,8 @@ set(glutils-sources
   glutils/GLSLProgram.cpp
   glutils/GLTexture.h
   glutils/GLTexture.cpp
+  glutils/OffscreenRendering.h
+  glutils/OffscreenRendering.cpp
   glutils/RenderToTexture.h
   glutils/RenderToTexture.cpp
   glutils/Trackball2.h
@@ -60,6 +62,8 @@ set(fx-sources
 
 set(utils-sources
   utils/ComputeThreads.h
+  utils/TGA.h
+  utils/TGA.cpp
 )
 
 set(params-sources
