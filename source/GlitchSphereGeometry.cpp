@@ -9,61 +9,69 @@ void GlitchSphereGeometry::createSphereGeometryWithGlitch(const SphereParams& sp
 
 void GlitchSphereGeometry::createSphereGeometryWithGlitch( float cx, float cy, float cz, float radius, int resolution, float t, float lambda, int colormap )
 {
-    constexpr float PI = 3.1415926f;
-    constexpr float TWOPI = 2 * PI;
+    if(resolution < 0)
+    {
+        resolution = static_cast<int>(m_cache.resolution);
+    }
+
+    if(resolution==0)
+    {
+        // TODO: Deal gracefully with 0 value, and probably also other too small values.
+    }
 
     m_sphereParams = SphereParams(cx,cy,cz,radius,resolution);
     m_glitchParams = GlitchParams{t,lambda,colormap};
+ 
+    const bool hasResolutionChanged = resolution != m_cache.resolution;
     
-    const int n = resolution;
-    const float dpi = (float)TWOPI/n;
-    
-    std::vector<float> cos_table( n+1 );
-    std::vector<float> sin_table( n+1 );
-    for( int i=0; i < n+1; ++i )
+    if(hasResolutionChanged)
     {
-        float alpha = i * dpi;
-        cos_table[i] = (float)std::cos(alpha);
-        sin_table[i] = (float)std::sin(alpha); // too lazy
+        m_cache.update(static_cast<size_t>(resolution));
     }
+ 
+    const size_t n = m_cache.resolution;
+    const float dpi = m_cache.deltaPi;
     
-    const int num_rows = n/2;
-    const int num_cols = n;
-    const int num_verts = 2*num_rows * num_cols;
-    const int num_tris = num_rows*num_cols*2;
+    const size_t num_rows = n/2;
+    const size_t num_cols = n;
+    const size_t num_verts = 2*num_rows * num_cols;
+    const size_t num_tris = num_rows*num_cols*2;
     
-    MeshBuffer::resize( num_verts, num_tris ); 
+    if(hasResolutionChanged)
+    {
+        MeshBuffer::resize( num_verts, num_tris );
+    }
 
     size_t index_count = 0;
     size_t vertex_count = 0;
-    for( int row=0; row < num_rows; ++row )
+    for(size_t row=0; row < num_rows; ++row)
     {
-        const int row_index = row * 2 * num_cols;
+        const size_t row_index = row * 2 * num_cols;
 
         // two circles for upper/lower latitude of current row
-        for( int r=0; r < 2; ++r )
+        for(size_t r=0; r < 2; ++r)
         {
-            const int thetaIndex = row + r;
+            const size_t thetaIndex = row + r;
 
             // glitch modulation f1
             const float theta = thetaIndex * dpi;
             const float f1 = (1.f-lambda) + lambda*(float)std::sin(theta+t);
 
-            const float cos_theta = cos_table[thetaIndex];
-            const float sin_theta = sin_table[thetaIndex];
-                        
-            for( int col=0; col < num_cols; ++col )
+            const float cos_theta = m_cache.cosTable[thetaIndex];
+            const float sin_theta = m_cache.sinTable[thetaIndex];
+
+            for(size_t col=0; col < num_cols; ++col)
             {
-                const int phiIndex = col;
+                const size_t phiIndex = col;
 
                 // glitch modulation f2
                 const float phi = phiIndex * dpi;
                 const float f2 = (1.f-lambda) + lambda*(float)std::sin(phi+t);
 
-                const float cos_phi = cos_table[phiIndex];
-                const float sin_phi = sin_table[phiIndex];
+                const float cos_phi = m_cache.cosTable[phiIndex];
+                const float sin_phi = m_cache.sinTable[phiIndex];
 
-                const int vi = row_index + r*num_cols + col;
+                const size_t vi = row_index + r*num_cols + col;
 
                 const float f[3] = {
                     sin_theta * cos_phi * (r == 0 ? f1 : f2),
@@ -105,32 +113,41 @@ void GlitchSphereGeometry::createSphereGeometryWithGlitch( float cx, float cy, f
             }
         }
         
-        // connectivity
-        unsigned* indices = MeshBuffer::getIndexData();
-        const int triangle_vertex_order[6] = {0,2,1, 3,2,0}; //{0,1,2, 2,3,0};
-        for( int col=0; col < num_cols; ++col )
+        if(hasResolutionChanged)
         {
-            int i0 = row_index + col;
-            int i1 = row_index + ((col+1)%num_cols); // connect last to first latitudal vertex
+            // connectivity
+            unsigned* indices = MeshBuffer::getIndexData();
+            const size_t triangle_vertex_order[6] = {0,2,1, 3,2,0}; //{0,1,2, 2,3,0};
+            for(size_t col=0; col < num_cols; ++col)
+            {
+                unsigned i0 = static_cast<unsigned>(row_index + col);
+                unsigned i1 = static_cast<unsigned>(row_index + ((col+1)%num_cols)); // connect last to first latitudal vertex
 
-            // 0 -- 3
-            // | \  |
-            // |  \ |
-            // 1 -- 2
+                // 0 -- 3
+                // | \  |
+                // |  \ |
+                // 1 -- 2
             
-            // slpit quad into 2 triangles
-            const int quad_indices[4] = {i0, i0+num_cols, i1+num_cols, i1};
-            for(auto i : triangle_vertex_order)
-                indices[index_count++] = quad_indices[i];
+                // slpit quad into 2 triangles
+                const size_t quad_indices[4] = {i0, i0+num_cols, i1+num_cols, i1};
+                for(auto i : triangle_vertex_order)
+                    indices[index_count++] = static_cast<unsigned>(quad_indices[i]);
+            }
         }
     }
 
-    MeshBuffer::setNumVertices(vertex_count);
-    MeshBuffer::setNumIndices(index_count);
-    assert(vertex_count == num_verts);
-    assert(index_count == num_tris*3);
+    if(hasResolutionChanged)
+    {
+        MeshBuffer::setNumVertices(vertex_count);
+        MeshBuffer::setNumIndices(index_count);
+        assert(vertex_count == num_verts);
+        assert(index_count == num_tris*3);
+    }
 
-    setColormap(colormap);
+    if(hasResolutionChanged || colormap != m_lastColormap)
+    {
+        setColormap(colormap);
+    }
 }
 
 void GlitchSphereGeometry::setColormap(int colormap)
@@ -183,6 +200,28 @@ void GlitchSphereGeometry::setColormap(int colormap)
                 case 10: setColor(0.2 * (i % 5), 0.2 * (i % 5), 0.2 * (i % 5), 0.1); break;
                 };
             }
+        }
+    }
+}
+
+inline void GlitchSphereGeometry::Cache::update(size_t n)
+{
+    if(this->resolution != n)
+    {
+        this->resolution = n;
+        constexpr float PI = 3.1415926f;
+        constexpr float TWOPI = 2 * PI;
+
+        const float dpi = (float)TWOPI/n;
+        this->deltaPi = dpi;
+
+        cosTable.resize(n+1);
+        sinTable.resize(n+1);
+        for(size_t i=0; i < n+1; ++i)
+        {
+            float alpha = i * dpi;
+            cosTable[i] = (float)std::cos(alpha);
+            sinTable[i] = (float)std::sin(alpha); // too lazy
         }
     }
 }

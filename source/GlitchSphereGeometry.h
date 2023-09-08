@@ -30,7 +30,21 @@ public:
     void createSphereGeometryWithGlitch(const SphereParams& sphereParams, const GlitchParams& glitchParams);
 
     void setColormap(int colormap);
-    
+
+private:
     SphereParams m_sphereParams;
     GlitchParams m_glitchParams;
+
+    struct Cache
+    {
+        void update(size_t n);
+
+        size_t resolution = 0;
+        float deltaPi = 0.f;
+        std::vector<float> cosTable;
+        std::vector<float> sinTable;
+    };
+
+    Cache m_cache;
+    int m_lastColormap = -1;
 };

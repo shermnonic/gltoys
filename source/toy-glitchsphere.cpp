@@ -1,3 +1,4 @@
+// toy-glitchsphere
 #include <imgui.h>
 #include <GLFWApp.h>
 
@@ -138,7 +139,7 @@ int main(int argc, char* argv[])
             ImGui::Checkbox("Culling", &globals.culling);
             ImGui::Checkbox("Animate", &globals.animate);
             ImGui::SliderFloat("Zoom", &globals.zoom, 1.f, 10.0f);
-            ImGui::SliderInt("Resolution", &params.resolution, 1, 128);
+            ImGui::SliderInt("Resolution", &params.resolution, 1, 1024);
             ImGui::SliderFloat("Param t", &params.t, 0.f, tmax);
             ImGui::SliderFloat("Param lambda", &params.lambda, 0.f, 10.f);
             ImGui::SliderInt("Colormap", &params.colormap, 0, 10);
