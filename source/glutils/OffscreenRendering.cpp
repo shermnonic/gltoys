@@ -1,5 +1,6 @@
 #include <glutils/OffscreenRendering.h>
 #include <glutils/GLError.h>
+#include <algorithm>
 #include <iostream>
 
 OffscreenRendering::OffscreenRendering(size_t width, size_t height)
