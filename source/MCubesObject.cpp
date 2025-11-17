@@ -4,6 +4,7 @@
 #include <fx/PerlinNoise.h>
 #include <fx/TilingSimplexFlowNoise.h>
 
+#include <cmath>
 #include <vector>
 #include <functional>
 

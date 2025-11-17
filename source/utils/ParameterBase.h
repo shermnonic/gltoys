@@ -97,7 +97,7 @@ public:
     ParameterList(std::string name)
     {}
 
-    ParameterList(std::string name, ParameterVector& params)
+    ParameterList(std::string name, ParameterVector const& params)
     : m_name(name),
       m_params(params)
     {}

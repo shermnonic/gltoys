@@ -11,7 +11,6 @@
 using std::sin;
 using std::cos;
 
-#define GLM_FORCE_SWIZZLE
 #include <glm/glm.hpp>
 using glm::vec3;
 using glm::vec4;
@@ -36,7 +35,8 @@ float psrdnoise(vec3 x, vec3 period, float alpha, /*out*/ vec3& gradient)
   const mat3 Mi = mat3(-0.5, 0.5, 0.5, 0.5,-0.5, 0.5, 0.5, 0.5,-0.5);
   vec3 uvw = M * x;
   vec3 i0 = floor(uvw), f0 = fract(uvw);
-  vec3 g_ = step(vec3(f0.xyx), vec3(f0.yzz)), l_ = vec3(1.0) - g_;
+  vec3 g_ = step(vec3(f0.x, f0.y, f0.x), vec3(f0.y, f0.z, f0.z));
+  vec3 l_ = vec3(1.0) - g_;
   vec3 g = vec3(l_.z, g_.x, g_.y), l = vec3(l_.x, l_.y, g_.z);
   vec3 o1 = min( g, l ), o2 = max( g, l );
   vec3 i1 = i0 + o1, i2 = i0 + o2, i3 = i0 + vec3(1.0);

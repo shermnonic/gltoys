@@ -69,7 +69,7 @@ void Trackball2::update( float ax, float ay, float bx, float by, int mode )
         glm::vec3 c = glm::normalize( glm::cross(a,b) );
         
         // Unit quaternion for this rotation
-        glm::fquat q( cos(theta/2.f), c * sin(theta/2.f) );
+        glm::fquat q( cosf(theta/2.f), c * sinf(theta/2.f) );
         
         if( m_immediateUpdate )
         {
