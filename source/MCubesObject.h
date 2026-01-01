@@ -22,7 +22,9 @@ struct MCubesObject : public MeshBuffer
 
     struct Parameters
     {
-        std::array<float, 3> position;
+        Parameters() = default;
+
+        std::array<float, 3> position = { 0.f, 0.f, 0.f };
 
         float octaves = 3;
         float persistence = 0.75f; // only for DensityFunction::PerlinNoise

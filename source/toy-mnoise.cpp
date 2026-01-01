@@ -57,12 +57,19 @@ struct MCubesParameters
     float posx = 0.f;
     float posy = 0.f;
     float posz = 0.f;
+    
+    int octaves = 3;
+    float persistence = 0.75f; // only for DensityFunction::PerlinNoise
+    float lacunarity = 2.f; // only for DensityFunction::FractalBrownianMotion
+    float gain = 0.5f;
+
+    int function = 0;
 };
 
 class MCubesScene
 {
 public:
-    const unsigned numRows = 4;
+    const unsigned numRows = 12;
 
     bool create()
     {
@@ -96,13 +103,22 @@ public:
 
     void update(MCubesParameters params)
     {
-        update(params.posx+123.3456f,params.posy+732.5489f,params.posz+129.3983f,
+        m_mcubes.setDensityFunction(params.function == 0 ? MCubesObject::DensityFunction::PerlinNoise : MCubesObject::DensityFunction::FractalBrownianMotion);
+
+        update(
+            MCubesObject::Parameters{
+                .position = {params.posx + 123.3456f, params.posy + 732.5489f, params.posz + 129.3983f},
+                .octaves = static_cast<float>(params.octaves),
+                .persistence = params.persistence,
+                .lacunarity = params.lacunarity,
+                .gain = params.gain
+            },
             1.f/(params.scale*(2<<(params.resolution-1))-.5f),params.iso,params.resolution);
     }
 
-    void update(float x, float y, float z, float scale, float iso, int pot)
+    void update(MCubesObject::Parameters parameters, float scale, float iso, int pot)
     {
-        m_mcubes.update(MCubesObject::Parameters{ .position = {x, y, z} }, scale, iso, pot);
+        m_mcubes.update(parameters, scale, iso, pot);
         m_isComputing = m_mcubes.isComputing;
     }
 
@@ -209,6 +225,7 @@ int main(int argc, char* argv[])
         Needles
     };
     auto setPreset = [&params, &globals](Preset p) {
+        MCubesObject::Parameters const defaultParameters;
         switch(p)
         {
         case Preset::Needles:
@@ -217,6 +234,11 @@ int main(int argc, char* argv[])
             params.iso = -0.108f;
             globals.zoom = 1.66f;
             globals.wireframe = true;
+
+            params.gain = defaultParameters.gain;
+            params.lacunarity = defaultParameters.lacunarity;
+            params.octaves = defaultParameters.octaves;
+            params.persistence = defaultParameters.persistence;
             break;
         case Preset::Reset:
             params = {};
@@ -278,6 +300,41 @@ int main(int argc, char* argv[])
             ImGui::SliderFloat("Overdraw",&params.scale,.1f,2.f);
             ImGui::SliderInt("Resolution",&params.resolution,1,7);
             ImGui::SliderFloat("Isovalue",&params.iso,-1.f,1.f);
+
+            {
+                const char* functions[] = { "Perlin", "fBM" };
+                std::size_t selected = params.function;
+                if (ImGui::BeginCombo("Function", functions[selected])) // The second parameter is the label previewed before opening the combo.
+                {
+                    for (int n = 0; n < IM_ARRAYSIZE(functions); n++)
+                    {
+                        bool is_selected = (n == selected);
+                        if (ImGui::Selectable(functions[n], is_selected))
+                        {
+                            selected = n;
+                        }
+                        if (is_selected)
+                        {
+                            ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                params.function = selected;
+            }
+
+            ImGui::SliderInt("Octaves", &params.octaves, 1, 8);
+
+            if(params.function == 0)
+            {
+                ImGui::SliderFloat("Persistence",&params.persistence, 0.f, 1.5f);
+            }
+            else if(params.function == 1)
+            {
+                ImGui::SliderFloat("Lacunarity", &params.lacunarity, 0.f, 5.0f);
+                ImGui::SliderFloat("Gain", &params.gain, 0.f, 1.0f);
+            }
+
             if (ImGui::Button("Save .obj"))
                 scene.saveOBJ("mnoise.obj");
 

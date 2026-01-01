@@ -67,6 +67,17 @@ bool MCubesObjectRenderer::create(unsigned nslices)
     return ok;
 }
 
+void MCubesObjectRenderer::setDensityFunction(MCubesObject::DensityFunction function)
+{
+    for(auto object : this->objects)
+    {
+        if(object)
+        {
+            object->densityFunction = function;
+        }
+    }
+}
+
 void MCubesObjectRenderer::update(MCubesObject::Parameters const& parameters,float scale,float iso,int pot)
 {
     static bool compute_launched = false;

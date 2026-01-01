@@ -20,6 +20,8 @@ struct MCubesObjectRenderer
 
     bool create(unsigned nslices=4);
 
+    void setDensityFunction(MCubesObject::DensityFunction function);
+
     void update(MCubesObject::Parameters const& parameters,float scale,float iso,int pot);
 
     void draw(int i);
