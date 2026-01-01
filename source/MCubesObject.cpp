@@ -11,13 +11,6 @@
 
 void MCubesObject::compute(float scale, float iso, unsigned N, unsigned slice, unsigned nslices)
 {
-    struct Params
-    {
-        float x0 = 123.3456f;
-        float y0 = 732.5489f;
-        float z0 = 129.3983f;
-    };
-
     auto samplefun_sphere = [](float x,float y,float z,void*) 
     {
         return std::sqrt(x*x + y*y + z*z); 
@@ -25,11 +18,25 @@ void MCubesObject::compute(float scale, float iso, unsigned N, unsigned slice, u
 
     auto samplefun_noise = [](float x,float y,float z,void* userdata) -> float
     {
-        Params p = userdata ? *(Params*)userdata : Params();
+        Parameters const p = userdata ? *(Parameters*)userdata : Parameters();
 
-        int octaves = 3;
-        float perstistence = 0.75;
-        float noise = PerlinNoise::fabsnoise( x+p.x0,y+p.y0,z+p.z0, octaves,perstistence );
+        float const noise = 
+            PerlinNoise::fabsnoise( 
+                x + p.position[0], y + p.position[1], z + p.position[2], 
+                p.octaves, p.persistence );
+            
+        // center-sphere cut-out
+        return fabs(noise) - (0.5f / (x*x + y*y + (z-1.f)*(z-1.f)));
+    };
+
+    auto samplefun_fbm = [](float x,float y,float z,void* userdata) -> float
+    {
+        Parameters const p = userdata ? *(Parameters*)userdata : Parameters();
+
+        float const noise = 
+            PerlinNoise::fBm( 
+                x + p.position[0], y + p.position[1], z + p.position[2], 
+                p.octaves, p.lacunarity, p.gain );
             
         // center-sphere cut-out
         return fabs(noise) - (0.5f / (x*x + y*y + (z-1.f)*(z-1.f)));
@@ -37,15 +44,19 @@ void MCubesObject::compute(float scale, float iso, unsigned N, unsigned slice, u
 
     auto samplefun_psrdnoise = [](float x,float y,float z,void* userdata) -> float
     {
-        Params p = userdata ? *(Params*)userdata : Params();
+        Parameters const p = userdata ? *(Parameters*)userdata : Parameters();
         float g[3];
-        return TilingSimplexFlowNoise::psrdnoise3(x+p.x0,y+p.y0,z+p.z0, 11,11,11, 0, g[0],g[1],g[2]);
+        return TilingSimplexFlowNoise::psrdnoise3(
+            x + p.position[0], y + p.position[1], z + p.position[2], 
+            11,11,11, 0, g[0],g[1],g[2]);
     };
 
     auto samplefun_psrdnoise_gradient = [](float x,float y,float z,float& grad_x,float& grad_y,float& grad_z, void* userdata)
     {
-        Params p = userdata ? *(Params*)userdata : Params();
-        TilingSimplexFlowNoise::psrdnoise3(x+p.x0,y+p.y0,z+p.z0, 11,11,11, 0, grad_x, grad_y, grad_z);
+        Parameters const p = userdata ? *(Parameters*)userdata : Parameters();
+        TilingSimplexFlowNoise::psrdnoise3(
+            x + p.position[0], y + p.position[1], z + p.position[2], 
+            11,11,11, 0, grad_x, grad_y, grad_z);
     };
 
     const size_t MAX_POINTS_PER_CUBE    = 12;
@@ -59,7 +70,15 @@ void MCubesObject::compute(float scale, float iso, unsigned N, unsigned slice, u
     unsigned total_num_triangles=0;
     unsigned total_num_points=0;
     unsigned index=0;
-        
+
+    MarchingCubes::SampleFunc const sampleFunc = 
+        (densityFunction == DensityFunction::Sphere) ? samplefun_sphere :
+        (densityFunction == DensityFunction::PerlinNoise) ? samplefun_noise :
+        (densityFunction == DensityFunction::FractalBrownianMotion) ? samplefun_fbm :
+        //(densityFunction == DensityFunction::TilingSimplexFlowNoise) ? samplefun_psrdnoise :
+        samplefun_noise;
+    MarchingCubes::GradientFunc const gradientFunc = nullptr;
+
     unsigned zistep=N/nslices, zi0=slice*zistep, ziend=(slice+1)*zistep;
     for(unsigned zi=zi0; zi < ziend; ++zi)
         for(unsigned yi=0; yi < N; ++yi)
@@ -76,15 +95,14 @@ void MCubesObject::compute(float scale, float iso, unsigned N, unsigned slice, u
                 float y = 2.f*(yi/float(N-1) - .5f) - scale*.5f;
                 float z = 2.f*(zi/float(N-1) - .5f) - scale*.5f;
 
-                struct { float x0,y0,z0; } pos{ fPosX,fPosY,fPosZ };
+                //struct { float x0,y0,z0; } pos{ parameters.position[0], parameters.position[1], parameters.position[2] };
                 MarchingCubes::triangulate( x, y, z, 
-                    //samplefun_psrdnoise, samplefun_psrdnoise_gradient,
-                    samplefun_noise, nullptr, 
+                    sampleFunc, gradientFunc, 
                     iso, scale,
                     this->getVertexData(index), 
                     this->getNormalData(index), 
                     this->getIndexData(total_num_triangles), index,
-                    num_triangles, num_points, (void*)&pos);
+                    num_triangles, num_points, (void*)&this->parameters);
 
                 index += num_points;
                 total_num_triangles += num_triangles;
@@ -100,14 +118,16 @@ void MCubesObject::compute(int slice)
     compute(fScale,fIsovalue,2<<iSizePot,slice,nSlices);
 }
 
-bool MCubesObject::update(float posx, float posy, float posz, float scale, float iso, int pow2, unsigned slice, unsigned nslices)
+bool MCubesObject::update(Parameters const& newParameters, float scale, float iso, int pow2, unsigned slice, unsigned nslices)
 {
     pow2 = std::max(std::min(pow2,7),1);
-    if(posx != fPosX || posy != fPosY || posz != fPosZ || scale != fScale || iso != fIsovalue || pow2 != iSizePot || nslices != nSlices)
+    if(this->parameters.position[0] != newParameters.position[0] ||
+        this->parameters.position[1] != newParameters.position[1] ||
+        this->parameters.position[2] != newParameters.position[2] ||
+        // @todo: Consider other parameters than position (e.g. add <=> comparison operator to Parameters)
+          scale != fScale || iso != fIsovalue || pow2 != iSizePot || nslices != nSlices)
     {
-        fPosX = posx;
-        fPosY = posy;
-        fPosZ = posz;
+        parameters = newParameters;
         fScale = scale;
         fIsovalue = iso;
         iSizePot = pow2;

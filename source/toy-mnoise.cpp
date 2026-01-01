@@ -102,7 +102,7 @@ public:
 
     void update(float x, float y, float z, float scale, float iso, int pot)
     {
-        m_mcubes.update(x,y,z,scale,iso,pot);
+        m_mcubes.update(MCubesObject::Parameters{ .position = {x, y, z} }, scale, iso, pot);
         m_isComputing = m_mcubes.isComputing;
     }
 

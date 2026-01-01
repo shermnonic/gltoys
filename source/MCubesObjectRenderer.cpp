@@ -67,7 +67,7 @@ bool MCubesObjectRenderer::create(unsigned nslices)
     return ok;
 }
 
-void MCubesObjectRenderer::update(float x,float y,float z,float scale,float iso,int pot)
+void MCubesObjectRenderer::update(MCubesObject::Parameters const& parameters,float scale,float iso,int pot)
 {
     static bool compute_launched = false;
     isComputing = computeThreadsPtr ? computeThreadsPtr->numDirty()>0 : false;
@@ -88,7 +88,7 @@ void MCubesObjectRenderer::update(float x,float y,float z,float scale,float iso,
 
     bool recompute_needed = false;
     for(unsigned i=0; i < numObjects; ++i)
-        recompute_needed |= objects[i]->update(x,y,z,scale,iso,pot,i,numObjects);
+        recompute_needed |= objects[i]->update(parameters, scale,iso,pot,i,numObjects);
 
     if(recompute_needed)
     {

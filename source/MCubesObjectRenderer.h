@@ -20,7 +20,7 @@ struct MCubesObjectRenderer
 
     bool create(unsigned nslices=4);
 
-    void update(float x,float y,float z,float scale,float iso,int pot);
+    void update(MCubesObject::Parameters const& parameters,float scale,float iso,int pot);
 
     void draw(int i);
     void draw();
