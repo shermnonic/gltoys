@@ -95,7 +95,6 @@ void MCubesObject::compute(float scale, float iso, unsigned N, unsigned slice, u
                 float y = 2.f*(yi/float(N-1) - .5f) - scale*.5f;
                 float z = 2.f*(zi/float(N-1) - .5f) - scale*.5f;
 
-                //struct { float x0,y0,z0; } pos{ parameters.position[0], parameters.position[1], parameters.position[2] };
                 MarchingCubes::triangulate( x, y, z, 
                     sampleFunc, gradientFunc, 
                     iso, scale,
@@ -118,22 +117,23 @@ void MCubesObject::compute(int slice)
     compute(fScale,fIsovalue,2<<iSizePot,slice,nSlices);
 }
 
-bool MCubesObject::update(Parameters const& newParameters, float scale, float iso, int pow2, unsigned slice, unsigned nslices)
+bool MCubesObject::update(Parameters const& newParameters, DensityFunction function, float scale, float iso, int pow2, unsigned slice, unsigned nslices)
 {
     pow2 = std::max(std::min(pow2,7),1);
-    if(this->parameters.position[0] != newParameters.position[0] ||
-        this->parameters.position[1] != newParameters.position[1] ||
-        this->parameters.position[2] != newParameters.position[2] ||
-        // @todo: Consider other parameters than position (e.g. add <=> comparison operator to Parameters)
-          scale != fScale || iso != fIsovalue || pow2 != iSizePot || nslices != nSlices)
+
+    if(!(this->parameters == newParameters) 
+        || function != densityFunction
+        || scale != fScale || iso != fIsovalue || pow2 != iSizePot || nslices != nSlices)
     {
         parameters = newParameters;
+        densityFunction = function;
         fScale = scale;
         fIsovalue = iso;
         iSizePot = pow2;
         nSlices = nslices;
         return true;
     }
+
     return false;
 }
 

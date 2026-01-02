@@ -49,7 +49,7 @@ void writeOBJtoFile(std::string filename, const MeshBuffer& meshBuffer)
 }
 
 
-struct MCubesParameters
+struct UIParameters
 {
     int resolution = 4;
     float scale = 1.f;
@@ -92,19 +92,20 @@ public:
     {
         glm::mat4 MVP = projection * modelview;
         m_shader.bind(glm::value_ptr(MVP));
-        int n=(int)m_mcubes.numObjects;
-        for(int i=0; i < n; ++i)
+        std::size_t n=(int)m_mcubes.getNumObjects();
+        for(std::size_t i=0; i < n; ++i)
         {
             if( debug )
-                m_shader.setColor(i/(float)(n-1),.5f,1.f-i/(float)(n-1),1.f);
+            {
+                float const d = i / static_cast<float>(n-1);
+                m_shader.setColor(d, .5f, 1.f - d, 1.f);
+            }
             m_mcubes.draw(i);
         }
     }
 
-    void update(MCubesParameters params)
+    void update(UIParameters params)
     {
-        m_mcubes.setDensityFunction(params.function == 0 ? MCubesObject::DensityFunction::PerlinNoise : MCubesObject::DensityFunction::FractalBrownianMotion);
-
         update(
             MCubesObject::Parameters{
                 .position = {params.posx + 123.3456f, params.posy + 732.5489f, params.posz + 129.3983f},
@@ -113,24 +114,27 @@ public:
                 .lacunarity = params.lacunarity,
                 .gain = params.gain
             },
-            1.f/(params.scale*(2<<(params.resolution-1))-.5f),params.iso,params.resolution);
+            params.function == 0 ? MCubesObject::DensityFunction::PerlinNoise : MCubesObject::DensityFunction::FractalBrownianMotion,
+            1.f/(params.scale*(2<<(params.resolution-1))-.5f),
+            params.iso,
+            params.resolution);
     }
 
-    void update(MCubesObject::Parameters parameters, float scale, float iso, int pot)
+    void update(MCubesObject::Parameters parameters, MCubesObject::DensityFunction function, float scale, float iso, int pot)
     {
-        m_mcubes.update(parameters, scale, iso, pot);
-        m_isComputing = m_mcubes.isComputing;
+        m_mcubes.update(parameters, function, scale, iso, pot);
+        m_isComputing = m_mcubes.isComputing();
     }
 
     std::string info()
     {
         std::stringstream os;
-        int n=(int)m_mcubes.numObjects;
-        for(int i=0; i < n; ++i)
+        auto n=(int)m_mcubes.getNumObjects();
+        for(auto i=0; i < n; ++i)
         {
             os << "slice " << i 
-               << " #verts " << m_mcubes.objects[i]->numVertices()
-               << " #indices " << m_mcubes.objects[i]->numIndices()
+               << " #verts " << m_mcubes.getObject(i)->numVertices()
+               << " #indices " << m_mcubes.getObject(i)->numIndices()
                << std::endl;
         }
         return os.str();
@@ -147,17 +151,17 @@ public:
 
     void saveOBJ(std::string filename)
     {
-        if(m_mcubes.objects.size()==1)
+        if(m_mcubes.getNumObjects()==1)
         {
-            writeOBJtoFile(filename, *m_mcubes.objects.at(0).get());
+            writeOBJtoFile(filename, *m_mcubes.getObject(0).get());
         }
         else
         {
             MeshBuffer meshBuffer;
             std::filesystem::path path(filename);
-            for (size_t i = 0; i < m_mcubes.objects.size(); ++i)
+            for (size_t i = 0; i < m_mcubes.getNumObjects(); ++i)
             {
-                if (const MeshBuffer* ptr = m_mcubes.objects.at(i).get())
+                if (const MeshBuffer* ptr = m_mcubes.getObject(i).get())
                 {
                     MeshBuffer tmp = *ptr;
                     meshBuffer.merge(tmp);
@@ -210,7 +214,7 @@ int main(int argc, char* argv[])
     if( !scene.create() )
         return 2;
 
-    MCubesParameters params;
+    UIParameters params;
     struct Globals
     {
         float clear_color[4] = { 0.45f, 0.55f, 0.60f, 1.00f };

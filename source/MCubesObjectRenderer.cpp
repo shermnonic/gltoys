@@ -1,12 +1,9 @@
 #include "MCubesObjectRenderer.h"
 #include <utils/ComputeThreads.h>
 
-#define MCUBES_PARALLEL // Comment out to disable parallel compute (for debugging purposes)
-//#define MCUBES_PARALLEL_INSTANT_UPDATE // Uncomment to trigger instant update for each slice (will lead to flicker)
-
-#ifdef MCUBES_PARALLEL_INSTANT_UPDATE
-std::mutex g_mutex_set_dirty;
-#endif
+constexpr bool ParallelComputation = true; // Set to false to disable parallel compute (for debugging purposes)
+constexpr bool ParallelInstantUpdate = false; // Configure instant update for each slice (will lead to flicker)
+std::mutex ParallelInstantUpdateMutex;
 
 void MCubesObjectRenderer::clear()
 {
@@ -16,7 +13,7 @@ void MCubesObjectRenderer::clear()
         computeThreadsPtr = nullptr;
     }
     objects.clear();
-    glmesh.clear();
+    meshes.clear();
     numObjects = 0;
 }
 
@@ -26,108 +23,113 @@ bool MCubesObjectRenderer::create(unsigned nslices)
 
     numObjects = nslices;
 
-    bool ok = true;
-    if(ok)
+    objects.resize(nslices);
+    meshes.resize(nslices);
+    for(unsigned i=0; i < numObjects; ++i)
     {
-        objects.resize(nslices);
-        for(unsigned i=0; i < numObjects; ++i)
+        objects[i] = std::make_shared<MCubesObject>();
+        meshes[i].setMeshBuffer(objects[i]);
+        if(!meshes[i].prepare())
         {
-            objects[i] = std::make_shared<MCubesObject>();
-        }
-
-        glmesh.resize(nslices);
-        for(unsigned i=0; i < numObjects; ++i)
-        {
-            glmesh[i].setMeshBuffer(objects[i]);
-            if(!glmesh[i].prepare())
-            {
-                ok = false;
-                break;
-            }
+            clear();
+            return false;
         }
     }
-#ifdef MCUBES_PARALLEL
-    if(ok)
+
+    if constexpr (ParallelComputation)
     {
         computeThreadsPtr = new ComputeThreads(numObjects,
             [this](int i)
         {
             objects[i]->compute(i);
 
-  #ifdef MCUBES_PARALLEL_INSTANT_UPDATE
-            // Trigger instant update for each slice (will lead to flicker)
-            std::lock_guard<std::mutex> guard(g_mutex_set_dirty);
-            this->glmesh[i].setDirty();
-  #endif
+            if constexpr (ParallelInstantUpdate)
+            {
+                // Trigger instant update for each slice (will lead to flicker)
+                std::lock_guard<std::mutex> guard(ParallelInstantUpdateMutex);
+                this->meshes[i].setDirty();
+            }
         });
     }
-#endif
-    if(!ok)
-        clear();
-    return ok;
+
+    return true;
 }
 
-void MCubesObjectRenderer::setDensityFunction(MCubesObject::DensityFunction function)
+void MCubesObjectRenderer::update(MCubesObject::Parameters const& parameters, MCubesObject::DensityFunction function, float scale, float iso, int pot)
 {
-    for(auto object : this->objects)
-    {
-        if(object)
-        {
-            object->densityFunction = function;
-        }
-    }
-}
+    bool const is_computing = isComputing();
 
-void MCubesObjectRenderer::update(MCubesObject::Parameters const& parameters,float scale,float iso,int pot)
-{
-    static bool compute_launched = false;
-    isComputing = computeThreadsPtr ? computeThreadsPtr->numDirty()>0 : false;
-
-    if(isComputing)
+    if(is_computing)
         return;
 
-    if(compute_launched && !isComputing)
+    if(computeLaunched)
     {
         // update all slices at once
-        for(unsigned i=0; i < numObjects; ++i)
+        for(auto& mesh : meshes)
         {
-            glmesh[i].setDirty();
-            glmesh[i].prepare();
+            mesh.setDirty();
+            mesh.prepare();
         }
-        compute_launched = false;
+        computeLaunched = false;
     }
 
     bool recompute_needed = false;
-    for(unsigned i=0; i < numObjects; ++i)
-        recompute_needed |= objects[i]->update(parameters, scale,iso,pot,i,numObjects);
+    for(std::size_t i=0; auto object : this->objects)
+    {
+        if(object)
+        {
+            recompute_needed |= object->update(parameters, function, scale, iso, pot, i, numObjects);
+        }
+        i++;
+    }
 
     if(recompute_needed)
     {
-#ifdef MCUBES_PARALLEL
-  #ifdef MCUBES_PARALLEL_INSTANT_UPDATE
-        if(computeThreadsPtr->numDirty()==0)
-  #endif
-            computeThreadsPtr->launchAll();
-        compute_launched = true;
-#else
-        for(unsigned i=0; i < numObjects; ++i)
-        {
-            objects[i]->compute(i);
-            glmesh[i].setDirty();
-            glmesh[i].prepare();
-        }
-#endif
+        recompute();
     }
 }
 
 void MCubesObjectRenderer::draw(int i)
 {
-    if(i>=0 && i<(int)numObjects)
-        glmesh[i].draw();
+    assert(i>=0 && i<(int)numObjects);
+    meshes[i].draw();
 }
 
 void MCubesObjectRenderer::draw()
 {
-    for(unsigned i=0; i < numObjects; ++i)
-        glmesh[i].draw();
+    for(auto& mesh : meshes)
+        mesh.draw();
+}
+
+void MCubesObjectRenderer::recompute()
+{
+    if constexpr (ParallelComputation)
+    {
+        if constexpr (ParallelInstantUpdate)
+        {
+            if(computeThreadsPtr->numDirty()==0)
+            {
+                computeThreadsPtr->launchAll();
+            }
+        }
+        else
+        {
+            computeThreadsPtr->launchAll();
+        }
+        computeLaunched = true;
+    }
+    else
+    {
+        for(std::size_t i=0; i < numObjects; ++i)
+        {
+            objects[i]->compute(i);
+            meshes[i].setDirty();
+            meshes[i].prepare();
+        }
+    }
+}
+
+bool MCubesObjectRenderer::isComputing() const
+{
+    return computeThreadsPtr ? computeThreadsPtr->numDirty()>0 : false;
 }

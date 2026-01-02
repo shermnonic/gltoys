@@ -22,8 +22,6 @@ struct MCubesObject : public MeshBuffer
 
     struct Parameters
     {
-        Parameters() = default;
-
         std::array<float, 3> position = { 0.f, 0.f, 0.f };
 
         float octaves = 3;
@@ -31,7 +29,16 @@ struct MCubesObject : public MeshBuffer
         float lacunarity = 2.f; // only for DensityFunction::FractalBrownianMotion
         float gain = 0.5f; // only for DensityFunction::FractalBrownianMotion
 
-        //auto operator<=>(Parameters const&) const = default;
+        bool operator == (Parameters const& other) const
+        {
+            return position[0] == other.position[0] 
+                && position[1] == other.position[1]
+                && position[2] == other.position[2]
+                && octaves == other.octaves
+                && persistence == other.persistence
+                && lacunarity == other.lacunarity
+                && gain == other.gain;
+        };
     };
 
     Parameters parameters;
@@ -39,6 +46,6 @@ struct MCubesObject : public MeshBuffer
     void compute(float scale, float iso, unsigned N, unsigned slice=0, unsigned nslices=1);
     void compute(int slice=0);
 
-    bool update(Parameters const& parameters, float scale, float iso, int pow2, unsigned slice=0, unsigned nslices=1);
+    bool update(Parameters const& parameters, DensityFunction function, float scale, float iso, int pow2, unsigned slice=0, unsigned nslices=1);
     bool create();
 };
