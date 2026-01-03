@@ -1,11 +1,14 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.6)
+
+set(CMAKE_TOOLCHAIN_FILE "~/repos/vcpkg/scripts/buildsystems/vcpkg.cmake")
+set(VCPKG_TARGET_TRIPLET x64-linux CACHE STRING "VCPKG Target Triplet to use")
 
 project(gltoys 
     VERSION 0.2
     DESCRIPTION "OpenGL toys by 386dx25"
     LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 set(BUILD_GLTOYS_APPS true CACHE BOOL "Build gltoys applications.")
 set(BUILD_TOYLIB_TEST_APPS true CACHE BOOL "Build toylib test applications for development.")

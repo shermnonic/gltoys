@@ -49,7 +49,7 @@ void writeOBJtoFile(std::string filename, const MeshBuffer& meshBuffer)
 }
 
 
-struct MCubesParameters
+struct UIParameters
 {
     int resolution = 4;
     float scale = 1.f;
@@ -57,12 +57,19 @@ struct MCubesParameters
     float posx = 0.f;
     float posy = 0.f;
     float posz = 0.f;
+    
+    int octaves = 3;
+    float persistence = 0.75f; // only for DensityFunction::PerlinNoise
+    float lacunarity = 2.f; // only for DensityFunction::FractalBrownianMotion
+    float gain = 0.5f;
+
+    int function = 0;
 };
 
 class MCubesScene
 {
 public:
-    const unsigned numRows = 4;
+    const unsigned numRows = 12;
 
     bool create()
     {
@@ -85,36 +92,49 @@ public:
     {
         glm::mat4 MVP = projection * modelview;
         m_shader.bind(glm::value_ptr(MVP));
-        int n=(int)m_mcubes.numObjects;
-        for(int i=0; i < n; ++i)
+        std::size_t n=(int)m_mcubes.getNumObjects();
+        for(std::size_t i=0; i < n; ++i)
         {
             if( debug )
-                m_shader.setColor(i/(float)(n-1),.5f,1.f-i/(float)(n-1),1.f);
+            {
+                float const d = i / static_cast<float>(n-1);
+                m_shader.setColor(d, .5f, 1.f - d, 1.f);
+            }
             m_mcubes.draw(i);
         }
     }
 
-    void update(MCubesParameters params)
+    void update(UIParameters params)
     {
-        update(params.posx+123.3456f,params.posy+732.5489f,params.posz+129.3983f,
-            1.f/(params.scale*(2<<(params.resolution-1))-.5f),params.iso,params.resolution);
+        update(
+            MCubesObject::Parameters{
+                .position = {params.posx + 123.3456f, params.posy + 732.5489f, params.posz + 129.3983f},
+                .octaves = static_cast<float>(params.octaves),
+                .persistence = params.persistence,
+                .lacunarity = params.lacunarity,
+                .gain = params.gain
+            },
+            params.function == 0 ? MCubesObject::DensityFunction::PerlinNoise : MCubesObject::DensityFunction::FractalBrownianMotion,
+            1.f/(params.scale*(2<<(params.resolution-1))-.5f),
+            params.iso,
+            params.resolution);
     }
 
-    void update(float x, float y, float z, float scale, float iso, int pot)
+    void update(MCubesObject::Parameters parameters, MCubesObject::DensityFunction function, float scale, float iso, int pot)
     {
-        m_mcubes.update(x,y,z,scale,iso,pot);
-        m_isComputing = m_mcubes.isComputing;
+        m_mcubes.update(parameters, function, scale, iso, pot);
+        m_isComputing = m_mcubes.isComputing();
     }
 
     std::string info()
     {
         std::stringstream os;
-        int n=(int)m_mcubes.numObjects;
-        for(int i=0; i < n; ++i)
+        auto n=(int)m_mcubes.getNumObjects();
+        for(auto i=0; i < n; ++i)
         {
             os << "slice " << i 
-               << " #verts " << m_mcubes.objects[i]->numVertices()
-               << " #indices " << m_mcubes.objects[i]->numIndices()
+               << " #verts " << m_mcubes.getObject(i)->numVertices()
+               << " #indices " << m_mcubes.getObject(i)->numIndices()
                << std::endl;
         }
         return os.str();
@@ -131,17 +151,17 @@ public:
 
     void saveOBJ(std::string filename)
     {
-        if(m_mcubes.objects.size()==1)
+        if(m_mcubes.getNumObjects()==1)
         {
-            writeOBJtoFile(filename, *m_mcubes.objects.at(0).get());
+            writeOBJtoFile(filename, *m_mcubes.getObject(0).get());
         }
         else
         {
             MeshBuffer meshBuffer;
             std::filesystem::path path(filename);
-            for (size_t i = 0; i < m_mcubes.objects.size(); ++i)
+            for (size_t i = 0; i < m_mcubes.getNumObjects(); ++i)
             {
-                if (const MeshBuffer* ptr = m_mcubes.objects.at(i).get())
+                if (const MeshBuffer* ptr = m_mcubes.getObject(i).get())
                 {
                     MeshBuffer tmp = *ptr;
                     meshBuffer.merge(tmp);
@@ -194,7 +214,7 @@ int main(int argc, char* argv[])
     if( !scene.create() )
         return 2;
 
-    MCubesParameters params;
+    UIParameters params;
     struct Globals
     {
         float clear_color[4] = { 0.45f, 0.55f, 0.60f, 1.00f };
@@ -209,6 +229,7 @@ int main(int argc, char* argv[])
         Needles
     };
     auto setPreset = [&params, &globals](Preset p) {
+        MCubesObject::Parameters const defaultParameters;
         switch(p)
         {
         case Preset::Needles:
@@ -217,6 +238,11 @@ int main(int argc, char* argv[])
             params.iso = -0.108f;
             globals.zoom = 1.66f;
             globals.wireframe = true;
+
+            params.gain = defaultParameters.gain;
+            params.lacunarity = defaultParameters.lacunarity;
+            params.octaves = defaultParameters.octaves;
+            params.persistence = defaultParameters.persistence;
             break;
         case Preset::Reset:
             params = {};
@@ -278,6 +304,41 @@ int main(int argc, char* argv[])
             ImGui::SliderFloat("Overdraw",&params.scale,.1f,2.f);
             ImGui::SliderInt("Resolution",&params.resolution,1,7);
             ImGui::SliderFloat("Isovalue",&params.iso,-1.f,1.f);
+
+            {
+                const char* functions[] = { "Perlin", "fBM" };
+                std::size_t selected = params.function;
+                if (ImGui::BeginCombo("Function", functions[selected])) // The second parameter is the label previewed before opening the combo.
+                {
+                    for (int n = 0; n < IM_ARRAYSIZE(functions); n++)
+                    {
+                        bool is_selected = (n == selected);
+                        if (ImGui::Selectable(functions[n], is_selected))
+                        {
+                            selected = n;
+                        }
+                        if (is_selected)
+                        {
+                            ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                params.function = selected;
+            }
+
+            ImGui::SliderInt("Octaves", &params.octaves, 1, 8);
+
+            if(params.function == 0)
+            {
+                ImGui::SliderFloat("Persistence",&params.persistence, 0.f, 1.5f);
+            }
+            else if(params.function == 1)
+            {
+                ImGui::SliderFloat("Lacunarity", &params.lacunarity, 0.f, 5.0f);
+                ImGui::SliderFloat("Gain", &params.gain, 0.f, 1.0f);
+            }
+
             if (ImGui::Button("Save .obj"))
                 scene.saveOBJ("mnoise.obj");
 

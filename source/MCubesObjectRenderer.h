@@ -9,8 +9,9 @@
 class ComputeThreads;
 
 /// Parallel compute & render
-struct MCubesObjectRenderer
+class MCubesObjectRenderer
 {
+public:
     ~MCubesObjectRenderer()
     {
         clear();
@@ -20,14 +21,29 @@ struct MCubesObjectRenderer
 
     bool create(unsigned nslices=4);
 
-    void update(float x,float y,float z,float scale,float iso,int pot);
+    void update(MCubesObject::Parameters const& parameters, MCubesObject::DensityFunction function, float scale, float iso, int pot);
 
     void draw(int i);
     void draw();
-    
+
+    std::size_t getNumObjects() const
+    {
+        return numObjects;
+    }
+
+    std::shared_ptr<const MCubesObject> getObject(std::size_t i) const
+    {
+        return objects[i];
+    }
+
+    bool isComputing() const;
+
+private:
+    void recompute();
+    bool computeLaunched = false;
+
     std::vector<std::shared_ptr<MCubesObject>> objects;
-    std::vector<GLMeshObject> glmesh;
-    unsigned numObjects=0;
+    std::vector<GLMeshObject> meshes;
+    std::size_t numObjects=0;
     ComputeThreads* computeThreadsPtr = nullptr;
-    bool isComputing = false;
 };
