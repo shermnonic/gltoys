@@ -25,5 +25,17 @@
                 "CXX": "g++-13"
             }
         }
+   ],
+   "buildPresets": [
+        {
+            "name": "Debug",
+            "configurePreset": "ninja-gcc13",
+            "configuration": "Debug"
+        },
+        {
+            "name": "Release",
+            "configurePreset": "ninja-gcc13",
+            "configuration": "Release"
+        }
    ]
 }
