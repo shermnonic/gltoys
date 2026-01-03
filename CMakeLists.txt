@@ -6,7 +6,6 @@ project(gltoys
     LANGUAGES CXX)
 
 
-#set(VCPKG_TARGET_TRIPLET x64-linux CACHE STRING "VCPKG Target Triplet to use")
 
 if(DEFINED ENV{VCPKG_ROOT})
     include("$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
