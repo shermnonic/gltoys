@@ -130,9 +130,13 @@ public:
         m_isComputing = m_mcubes.isComputing();
     }
 
+    // Don't poll this too fast!
     std::string info()
     {
         std::stringstream os;
+
+        os << "compute time est. " << m_mcubes.getTotalComputationTimeInMilliseconds() << "ms" << std::endl;
+
         auto n=(int)m_mcubes.getNumObjects();
         for(auto i=0; i < n; ++i)
         {
@@ -280,6 +284,8 @@ int main(int argc, char* argv[])
     bool ui_disabled = true;
     bool trigger_offscreen_rendering_screenshot = false;
     float computing_duration = 0.f;
+    float seconds_since_last_info_update = 0.f;
+    std::string info;
     while(app.running())
     {
         app.beginFrame();
@@ -369,7 +375,7 @@ int main(int argc, char* argv[])
             {
                 ImGui::Checkbox("Debug colors",&scene.debug);
                 ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-                ImGui::Text(scene.info().c_str());
+                ImGui::Text("%s", info.c_str());
             }
 
             if (ui_disabled)
@@ -380,6 +386,13 @@ int main(int argc, char* argv[])
         GL::clearGLError("main - ImGui::Render()");
 
         float dt = (float)app.tic();
+
+        seconds_since_last_info_update += dt;
+        if(seconds_since_last_info_update > 1.f)
+        {
+            info = scene.info();
+            seconds_since_last_info_update = 0.f;
+        }
 
         // Frame
         {

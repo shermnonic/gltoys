@@ -133,3 +133,15 @@ bool MCubesObjectRenderer::isComputing() const
 {
     return computeThreadsPtr ? computeThreadsPtr->numDirty()>0 : false;
 }
+
+float MCubesObjectRenderer::getTotalComputationTimeInMilliseconds() const
+{
+    if(computeThreadsPtr)
+    {
+        auto timeInNanoseconds = computeThreadsPtr->getTotalComputationTime();
+
+        return static_cast<float>(timeInNanoseconds) * 1e-9f;
+    }
+
+    return 0.f;
+}

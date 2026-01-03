@@ -38,6 +38,8 @@ public:
 
     bool isComputing() const;
 
+    float getTotalComputationTimeInMilliseconds() const;
+
 private:
     void recompute();
     bool computeLaunched = false;
