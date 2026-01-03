@@ -17,6 +17,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <thread>
 #include <vector>
 
 #include <imgui.h>
@@ -69,11 +70,14 @@ struct UIParameters
 class MCubesScene
 {
 public:
-    const unsigned numRows = 12;
-
     bool create()
     {
-        if(!m_mcubes.create(numRows))
+        unsigned const numberOfLogicalCPUs = std::thread::hardware_concurrency();
+        unsigned const numberOfThreadsToUse = std::max<unsigned>(2, static_cast<unsigned>(std::ceil(static_cast<float>(numberOfLogicalCPUs) * 0.8f)));
+
+        std::cout << "Using " << numberOfThreadsToUse << " threads" << std::endl;
+
+        if(!m_mcubes.create(numberOfThreadsToUse))
         {
             std::cerr << "Error creating mesh object" << std::endl;
             return false;
