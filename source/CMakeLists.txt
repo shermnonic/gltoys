@@ -1,31 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
-
-set(CMAKE_TOOLCHAIN_FILE "~/repos/vcpkg/scripts/buildsystems/vcpkg.cmake")
-set(VCPKG_TARGET_TRIPLET x64-linux CACHE STRING "VCPKG Target Triplet to use")
-
-project(gltoys 
-    VERSION 0.2
-    DESCRIPTION "OpenGL toys by 386dx25"
-    LANGUAGES CXX)
-
-set(CMAKE_CXX_STANDARD 20)
-
-set(BUILD_GLTOYS_APPS true CACHE BOOL "Build gltoys applications.")
-set(BUILD_TOYLIB_TEST_APPS true CACHE BOOL "Build toylib test applications for development.")
-set(BUILD_SHARED_LIBRARY false CACHE BOOL "Buid shared library.")
-
 include_directories(./)
-
-find_package(OpenGL REQUIRED)
-find_package(GLEW REQUIRED)
-find_package(glm REQUIRED)
-
-if (BUILD_GLTOYS_APPS)
-    find_package(glfw3 CONFIG REQUIRED)
-    find_package(imgui CONFIG REQUIRED)
-    add_compile_definitions(IMGUI_IMPL_OPENGL_LOADER_GLEW)
-endif()
-
 
 set(glutils-sources
   glutils/GLConfig.h
@@ -92,7 +65,6 @@ endif()
 target_link_libraries(toylib GLEW::GLEW ${OPENGL_LIBRARY})
 
 if (BUILD_GLTOYS_APPS)
-
     add_executable(toy-hello toy-hello.cpp ${imgui-impl-sources})
     target_link_libraries(toy-hello PRIVATE toylib imgui::imgui glfw)
 

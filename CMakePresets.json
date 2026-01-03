@@ -1,0 +1,41 @@
+{
+    "version" : 8,
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/${presetName}"
+        },
+        {
+            "name": "default",
+            "inherits": "base"
+        },
+        {
+            "name": "ninja",
+            "hidden": true,
+            "generator": "Ninja Multi-Config"
+        },
+        {
+            "name": "ninja-gcc13",
+            "inherits": [
+                "default",
+                "ninja"
+            ],
+            "environment": {
+                "CXX": "g++-13"
+            }
+        }
+   ],
+   "buildPresets": [
+        {
+            "name": "Debug",
+            "configurePreset": "ninja-gcc13",
+            "configuration": "Debug"
+        },
+        {
+            "name": "Release",
+            "configurePreset": "ninja-gcc13",
+            "configuration": "Release"
+        }
+   ]
+}
