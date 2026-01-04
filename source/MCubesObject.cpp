@@ -5,12 +5,14 @@
 #include <fx/TilingSimplexFlowNoise.h>
 
 #include <cmath>
-#include <vector>
 #include <functional>
+#include <tuple>
+#include <vector>
 
-
-void MCubesObject::compute(float scale, float iso, unsigned N, unsigned slice, unsigned nslices)
+namespace
 {
+    using Parameters = MCubesObject::Parameters;
+
     auto samplefun_sphere = [](float x,float y,float z,void*) 
     {
         return std::sqrt(x*x + y*y + z*z); 
@@ -58,19 +60,19 @@ void MCubesObject::compute(float scale, float iso, unsigned N, unsigned slice, u
             x + p.position[0], y + p.position[1], z + p.position[2], 
             11,11,11, 0, grad_x, grad_y, grad_z);
     };
+}
 
-    const size_t MAX_POINTS_PER_CUBE    = 12;
-    const size_t MAX_TRIANGLES_PER_CUBE = 5;
+namespace
+{
+    auto ceil_cast_division = [](std::size_t a, unsigned b)
+    {
+        //return a / b;
+        return static_cast<std::size_t>(std::ceil(static_cast<double>(a) / static_cast<double>(b)));
+    };
+}
 
-    this->setNumVertices(0);
-    this->setNumIndices(0);
-    this->resize( N*N * MAX_POINTS_PER_CUBE    / nslices, 
-                  N*N * MAX_TRIANGLES_PER_CUBE / nslices );
-
-    unsigned total_num_triangles=0;
-    unsigned total_num_points=0;
-    unsigned index=0;
-
+void MCubesObject::compute(float scale, float iso, unsigned N, unsigned slice, unsigned nslices)
+{
     MarchingCubes::SampleFunc const sampleFunc = 
         (densityFunction == DensityFunction::Sphere) ? samplefun_sphere :
         (densityFunction == DensityFunction::PerlinNoise) ? samplefun_noise :
@@ -79,42 +81,68 @@ void MCubesObject::compute(float scale, float iso, unsigned N, unsigned slice, u
         samplefun_noise;
     MarchingCubes::GradientFunc const gradientFunc = nullptr;
 
-    unsigned zistep=N/nslices, zi0=slice*zistep, ziend=(slice+1)*zistep;
-    for(unsigned zi=zi0; zi < ziend; ++zi)
-        for(unsigned yi=0; yi < N; ++yi)
-            for(unsigned xi=0; xi < N; ++xi)
-            {
-                assert( index==total_num_points );
+    const size_t MAX_POINTS_PER_CUBE    = 12;
+    const size_t MAX_TRIANGLES_PER_CUBE = 5;
 
-                this->ensure( MAX_POINTS_PER_CUBE, MAX_TRIANGLES_PER_CUBE );
+    auto const NN = N*N; // number of cubes in one z-plane
+    auto const totalNumberOfCubes = NN*N;
+    auto const numberOfCubesPerSlice = ceil_cast_division(totalNumberOfCubes, nslices);
 
-                unsigned num_triangles=0;
-                unsigned num_points=0;
+    this->setNumVertices(0);
+    this->setNumIndices(0);
+    this->resize( numberOfCubesPerSlice * MAX_POINTS_PER_CUBE, 
+                  numberOfCubesPerSlice * MAX_TRIANGLES_PER_CUBE );
 
-                float x = 2.f*(xi/float(N-1) - .5f) - scale*.5f;
-                float y = 2.f*(yi/float(N-1) - .5f) - scale*.5f;
-                float z = 2.f*(zi/float(N-1) - .5f) - scale*.5f;
+    unsigned const cubeStartIndex = numberOfCubesPerSlice*slice;
+    unsigned const cubeEndIndex = cubeStartIndex + numberOfCubesPerSlice;
 
-                MarchingCubes::triangulate( x, y, z, 
-                    sampleFunc, gradientFunc, 
-                    iso, scale,
-                    this->getVertexData(index), 
-                    this->getNormalData(index), 
-                    this->getIndexData(total_num_triangles), index,
-                    num_triangles, num_points, (void*)&this->parameters);
+    auto linearIndexToSub = [&](std::size_t linearIndex)
+    {
+        auto const zi = linearIndex / NN;
+        auto const remainder = linearIndex % NN; // same as linearIndex - zi*NN
+        return std::tuple{ remainder % N, remainder / N, zi };
+        
+    };
 
-                index += num_points;
-                total_num_triangles += num_triangles;
-                total_num_points += num_points;
+    unsigned total_num_triangles = 0;
+    unsigned total_num_points = 0;
+    unsigned index = 0;
 
-                this->setNumVertices( total_num_points );
-                this->setNumIndices( total_num_triangles*3 );
-            }
+    for(unsigned currentCubeIndex = cubeStartIndex; currentCubeIndex < cubeEndIndex; ++currentCubeIndex)
+    {
+        auto [xi, yi, zi] = linearIndexToSub(currentCubeIndex);
+
+        assert( index==total_num_points );
+
+        this->ensure( MAX_POINTS_PER_CUBE, MAX_TRIANGLES_PER_CUBE );
+
+        unsigned num_triangles=0;
+        unsigned num_points=0;
+
+        float x = 2.f*(xi/float(N-1) - .5f) - scale*.5f;
+        float y = 2.f*(yi/float(N-1) - .5f) - scale*.5f;
+        float z = 2.f*(zi/float(N-1) - .5f) - scale*.5f;
+
+        MarchingCubes::triangulate( x, y, z, 
+            sampleFunc, gradientFunc, 
+            iso, scale,
+            this->getVertexData(index), 
+            this->getNormalData(index), 
+            this->getIndexData(total_num_triangles), index,
+            num_triangles, num_points, (void*)&this->parameters);
+
+        index += num_points;
+        total_num_triangles += num_triangles;
+        total_num_points += num_points;
+
+        this->setNumVertices( total_num_points );
+        this->setNumIndices( total_num_triangles*3 );
+    }
 }
 
 void MCubesObject::compute(int slice)
 {
-    compute(fScale,fIsovalue,2<<iSizePot,slice,nSlices);
+    compute(fScale, fIsovalue, 2<<iSizePot, slice, nSlices);
 }
 
 bool MCubesObject::update(Parameters const& newParameters, DensityFunction function, float scale, float iso, int pow2, unsigned slice, unsigned nslices)
