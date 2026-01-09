@@ -1,3 +1,13 @@
+find_package(OpenGL REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(glm REQUIRED)
+
+if (BUILD_GLTOYS_APPS)
+    find_package(glfw3 CONFIG REQUIRED)
+    find_package(imgui CONFIG REQUIRED)
+    add_compile_definitions(IMGUI_IMPL_OPENGL_LOADER_GLEW)
+endif()
+
 include_directories(./)
 
 set(glutils-sources
