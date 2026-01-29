@@ -60,6 +60,12 @@ set(params-sources
   utils/ParameterTypes.h
 )
 
+set(geometry-sources
+  geometry/Geometry2.h
+  geometry/Geometry2.cpp
+)
+
+source_group(geometry FILES ${geometry-sources})
 source_group(glutils FILES ${glutils-sources})
 source_group(imgui-impl FILES ${imgui-impl-sources})
 source_group(fx FILES ${fx-sources})
@@ -83,6 +89,9 @@ if (BUILD_GLTOYS_APPS)
 
     add_executable(toy-glitchsphere toy-glitchsphere.cpp GLFWApp.h GLFWApp.cpp GlitchSphereGeometry.h GlitchSphereGeometry.cpp ${imgui-impl-sources})
     target_link_libraries(toy-glitchsphere PRIVATE toylib imgui::imgui glfw)
+
+    add_executable(toy-geometry toy-geometry.cpp ${geometry-sources})
+    target_link_libraries(toy-glitchsphere PRIVATE)
 endif()
 
 if (BUILD_TOYLIB_TEST_APPS)
