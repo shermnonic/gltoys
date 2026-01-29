@@ -16,25 +16,25 @@
             "generator": "Ninja Multi-Config"
         },
         {
-            "name": "ninja-gcc13",
+            "name": "ninja-gcc",
             "inherits": [
                 "default",
                 "ninja"
             ],
             "environment": {
-                "CXX": "g++-13"
+                "CXX": "g++"
             }
         }
    ],
    "buildPresets": [
         {
             "name": "Debug",
-            "configurePreset": "ninja-gcc13",
+            "configurePreset": "ninja-gcc",
             "configuration": "Debug"
         },
         {
             "name": "Release",
-            "configurePreset": "ninja-gcc13",
+            "configurePreset": "ninja-gcc",
             "configuration": "Release"
         }
    ]
