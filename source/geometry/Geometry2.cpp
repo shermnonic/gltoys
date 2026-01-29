@@ -5,6 +5,7 @@
 #include <cstdlib> // for rand() and RAND_MAX
 #include <cstdio>
 #include <set>
+#include <tuple>
 #include <algorithm>
 
 #ifndef M_PI
@@ -24,33 +25,6 @@ SimpleGeometry::Face::Face( int i[3] )
 SimpleGeometry::Face::Face( int i, int j, int k )
 	{ vi[0]=i; vi[1]=j; vi[2]=k; }
 
-/*
-void SimpleGeometry::test_pointer_consistency()
-{
-	using namespace std;
-	// test ptr consistency
-	float* vp = get_vertices_ptr();
-	float err=0.f;
-	for( int i=0; i < num_vertices(); ++i )
-	{
-		vec3 v = get_vertex( i );
-		for( int j=0; j < 3; ++j ) 
-		{			
-			cout << i << ":  " << vp[3*i+j] << "  vs.  " << v[j] << endl;
-			err += (vp[3*i+j] - v[j])*(vp[3*i+j] - v[j]);
-		}
-	}
-	cout << "Error = " << err << endl;
-	int* tp = get_indices_ptr();
-	for( int i=0; i < num_faces(); ++i )
-	{
-		Face f = get_face(i);
-		for( int j=0; j < 3; ++j )
-			assert( tp[i*3+j] == f.vi[j] );
-	}
-}
-*/
-
 void SimpleGeometry::clear()
 {
 	m_vdata.clear();
@@ -60,26 +34,15 @@ void SimpleGeometry::clear()
 
 void SimpleGeometry::reserve_vertices( int n )
 {
-#ifndef GEOMETRY2_NO_BUFFER_SUPPORT
 	m_vdata.reserve( 3*(n-8) );
 	m_ndata.reserve( 3*(n-8) );
-#else
-	m_vertices.reserve( n - 8 );
-	m_normals .reserve( n - 8 );
-#endif
 }
 
 void SimpleGeometry::reserve_faces( int n )
 {
-#ifndef GEOMETRY2_NO_BUFFER_SUPPORT
 	m_fdata.reserve( 3*n );
-#else
-	m_faces   .reserve( n );
-#endif
 }
 
-#ifndef GEOMETRY2_NO_BUFFER_SUPPORT
-	
 int SimpleGeometry::num_vertices() const { return (int)m_vdata.size()/3; }
 int SimpleGeometry::num_faces()    const { return (int)m_fdata.size()/3; }
 
@@ -139,45 +102,6 @@ float* SimpleGeometry::get_vertex_ptr()  { return &m_vdata[0]; }
 float* SimpleGeometry::get_normal_ptr ()  { return &m_ndata[0]; }
 
 int*   SimpleGeometry::get_index_ptr()   { return &m_fdata[0]; }
-
-#else
-
-int SimpleGeometry::num_vertices() const { return m_vertices.size(); }
-int SimpleGeometry::num_faces()    const { return m_faces   .size(); }
-
-vec3 SimpleGeometry::get_vertex( int i )
-{
-	return m_vertices.at(i);
-}
-
-SimpleGeometry::Face SimpleGeometry::get_face( int i )
-{
-	return m_faces.at(i);
-}
-
-int SimpleGeometry::add_face( Face f )
-{
-	m_faces.push_back( f );
-	return m_faces.size()-1;
-}
-
-int SimpleGeometry::add_vertex_and_normal( vec3 v, vec3 n )
-{	
-	m_vertices.push_back( v );
-	m_normals .push_back( n );
-	// enforce identical indices for vertices/normals
-	assert( m_vertices.size() == m_normals.size() );
-	return m_vertices.size()-1;
-}
-
-float* SimpleGeometry::get_vertex_ptr()  { return &m_vertices[0][0]; }
-
-float* SimpleGeometry::get_normal_ptr ()  { return &m_normals[0][0]; }
-
-int*   SimpleGeometry::get_index_ptr()   { return &m_faces[0].vi[0]; }
-
-#endif // GEOMETRY2_NO_BUFFER_SUPPORT
-
 
 bool SimpleGeometry::writeOBJ( const char* filename ) const
 {
@@ -275,35 +199,7 @@ void Icosahedron::create( int levels )
 	else
 		m_levels = levels;
 
-	// initial 20 sided platonic solid
-	
-	// golden ratio (1+sqrt(5))/2 = 1.6180339887498948482045868343656
-	// sqrt(5) = 2,2360679774997896964091736687313
-	// 2*pi/5 = 1,2566370614359172953850573533118
-
-	//static double X = 1.287654321; //.525731112119133606;
-	//static double Z = 1.723456789; //.850650808352039932;
-#if 0
-	// Bendels Icosahedron definition
-	double X = .525731112119133606 , //m_platonicConstantX,
-		   Z = .850650808352039932;  //m_platonicConstantZ,		   
-	//Y = 0.3;
-	/*static*/ vec3 vdata[12] = {
-	   //vec3(-X, -Y, Z), vec3(X, 0.0, Z), vec3(-X, 0.0, -Z), vec3(X, 0.0, -Z),
-	   //vec3(0.0, Z, X), vec3(0.0, Z, -X), vec3(0.0, -Z, X), vec3(0.0, -Z, -X),    
-	   //vec3(Z, X, -Y), vec3(-Z, X, 0.0), vec3(Z, -X, 0.0), vec3(-Z, -X, 0.0) 
-	   vec3(-X, 0.0, Z), vec3(X, 0.0, Z), vec3(-X, 0.0, -Z), vec3(X, 0.0, -Z),
-	   vec3(0.0, Z, X), vec3(0.0, Z, -X), vec3(0.0, -Z, X), vec3(0.0, -Z, -X),    
-	   vec3(Z, X, 0.0), vec3(-Z, X, 0.0), vec3(Z, -X, 0.0), vec3(-Z, -X, 0.0) 
-	};
-	static int tindices[20][3] = { 
-	   {0,4,1}, {0,9,4}, {9,5,4}, {4,5,8}, {4,8,1},    
-	   {8,10,1}, {8,3,10}, {5,3,8}, {5,2,3}, {2,7,3},    
-	   {7,10,3}, {7,6,10}, {7,11,6}, {11,0,6}, {0,1,6}, 
-	   {6,1,10}, {9,0,11}, {9,11,2}, {9,2,5}, {7,2,11} };
-#else
-	// Classic Icosahedron definition (based solely on golden ratio constant)
-	float tao = (float)m_platonicConstantX; //1.61803399;
+	float tao = (float)m_platonicConstantX; // for true icosahedron use golden ratio (1+sqrt(5))/2 = 1.61803399
 	vec3 vdata[12] = { vec3(1,tao,0),vec3(-1,tao,0),vec3(1,-tao,0),vec3(-1,-tao,0),
 					   vec3(0,1,tao),vec3(0,-1,tao),vec3(0,1,-tao),vec3(0,-1,-tao),
 					   vec3(tao,0,1),vec3(-tao,0,1),vec3(tao,0,-1),vec3(-tao,0,-1) };
@@ -311,7 +207,6 @@ void Icosahedron::create( int levels )
 	static int tindices[20][3] = { 
 	{0,1,4},{1,9,4},{4,9,5},{5,9,3},{2,3,7},{3,2,5},{7,10,2},{0,8,10},{0,4,8},{8,2,10},{8,4,5},{8,5,2},{1,0,6},{11,1,6},{3,9,11},{6,10,7},{3,11,7},{11,6,7},{6,0,10},{9,1,11}
 	};
-#endif
 
 	// exact memory calulation
 	int n = (int)(20.0*pow(4.0,(double)levels));
@@ -456,32 +351,34 @@ void Penrose::create( int levels )
 	for( int i=0; i < m_generator.num_faces(); i++ )
 		add_face_subdivision( m_generator.get_face(i), Red, levels );
 
-#if 0  // HARDCODED WHEEL GENERATOR
-	// Origin
-	add_vertex_and_normal( vec3( 0,0,0 ), vec3(0,0,1) );
-	
-	// Wheel around origin
-	for( int i=0; i < 10; i++ )
+	constexpr bool WheelGenerator = false;
+	if constexpr(WheelGenerator)
 	{
-		double phi = (double)i * 2.*M_PI / 10.;
-		add_vertex_and_normal(
-			vec3( cos(phi), sin(phi), 0 ),
-			vec3( 0,0,1 ) );
-	}
-	
-	// Subdivide red triangles
-	for( int i=0; i < 10; i++ )
-	{
-		int j = (i+0) % 10 + 1,
-			k = (i+1) % 10 + 1;
+		// Origin
+		add_vertex_and_normal( vec3( 0,0,0 ), vec3(0,0,1) );
+		
+		// Wheel around origin
+		for( int i=0; i < 10; i++ )
+		{
+			double phi = (double)i * 2.*M_PI / 10.;
+			add_vertex_and_normal(
+				vec3( cos(phi), sin(phi), 0 ),
+				vec3( 0,0,1 ) );
+		}
+		
+		// Subdivide red triangles
+		for( int i=0; i < 10; i++ )
+		{
+			int j = (i+0) % 10 + 1,
+				k = (i+1) % 10 + 1;
 
-		// Mirror every second triangle
-		if( i%2 )		
-			add_face_subdivision( Face( 0, j, k ), Red, levels );
-		else
-			add_face_subdivision( Face( 0, k, j ), Red, levels );
+			// Mirror every second triangle
+			if( i%2 )		
+				add_face_subdivision( Face( 0, j, k ), Red, levels );
+			else
+				add_face_subdivision( Face( 0, k, j ), Red, levels );
+		}
 	}
-#endif
 }
 
 void Penrose::setDefaultGenerator()
@@ -837,12 +734,14 @@ void SphericalHarmonics::create( int level )
 //	SHF
 //==============================================================================
 
-void polar( const vec3& v, double& theta, double & phi )
+std::tuple<double, double> polar( const vec3& v )
 {
 	// Normalize to project onto unit sphere
-	double l = v.magnitude();
-	theta = acos( v.z / l ),
-	phi = atan2( v.y / l, v.x / l );
+	double const l = v.magnitude();
+	return {
+		acos( v.z / l ),
+		atan2( v.y / l, v.x / l )
+	};
 }
 
 void SHF::create( int level )
@@ -918,6 +817,8 @@ vec3 fromPolar( double theta, double phi )
 
 void SHF::update()
 {
+	constexpr bool Debug = false;
+
 	for( int i=0; i < num_vertices(); ++i )
 	{
 		// Evalute function in SH basis
@@ -935,25 +836,27 @@ void SHF::update()
 		set_vertex( i, v*(float)s.r );
 
 		// Normal from gradient
-		vec3 n;
-	  #if 0
-		n = fromPolar( s.dtheta, s.dphi );
-	  #else
-		double theta, phi;
-		polar(v,theta,phi);
-		//printf("vertex %04d: theta=%8.7fpi, phi=%8.7fpi\n",i,theta/M_PI,phi/M_PI);
-		n = fromPolar( theta-s.dtheta, phi-s.dphi );
-	  #endif
-		n.normalize();
-	  #if 1
-		double eps=0.1;
-		if( abs(theta/M_PI)<eps && abs(phi/M_PI)<eps )
-		//if( i==19 || i==44 )
+		auto const [theta, phi] = polar(v);
+
+		if constexpr(Debug)
 		{
-			//printf("*** Encountered zero angles at vertex %d\n",i);
+			printf("vertex %04d: theta=%8.7fpi, phi=%8.7fpi\n",i,theta/M_PI,phi/M_PI);
+		}
+
+		vec3 n = fromPolar( theta-s.dtheta, phi-s.dphi );
+		n.normalize();
+
+		// Handle zero angles
+		constexpr double eps = 0.1;
+		if( abs(theta/M_PI)<eps && abs(phi/M_PI)<eps )
+		{
+			if constexpr(Debug)
+			{
+				printf("*** Encountered zero angles at vertex %d\n",i);
+			}
 			n = vec3(0.f,0.f,1.f);
 		}
-	  #endif
+
 		set_normal( i, n );
 	}
 }
@@ -973,10 +876,9 @@ void SHF::createBasis()
 	// Evaluate SH function on vertices (translated into spherical coordinates)
 	for( int i=0; i < num_vertices(); ++i )
 	{
-		// Sample sphere in polar coordinates 
-		double theta, phi;
-		vec3 v = get_vertex( i );
-		polar( v, theta, phi );	
+		// Sample sphere in polar coordinates 		
+		vec3 const v = get_vertex( i );
+		auto const [theta, phi] = polar(v);	
 
 		// Compute all basis coefficients for current (theta,phi)
 		for( int j=0, l=0; l < m_order; l++ ) // band l, linear index j

@@ -1,11 +1,6 @@
 #ifndef GEOMETRY2_H
 #define GEOMETRY2_H
 
-// First approach was to use vectors of vec3 and Face type, but the corresponding
-// float/int data is not tightly packed in memory because class/struct overhead.
-// (Leave commented out!)
-//#define GEOMETRY2_NO_BUFFER_SUPPORT
-
 #include "Vector.h"  // vec3
 #include <vector>
 
@@ -82,17 +77,9 @@ public:
 	int add_vertex_and_normal( vec3 v, vec3 n );
 	
 private:
-#ifndef GEOMETRY2_NO_BUFFER_SUPPORT
 	std::vector<float> m_vdata;
 	std::vector<float> m_ndata;	 // vertex normals
 	std::vector<int>   m_fdata;
-#else
-	std::vector<vec3> m_vertices;
-	std::vector<vec3> m_normals;
-	std::vector<Face> m_faces;
-#endif
-
-	
 };
 
 //==============================================================================
@@ -107,8 +94,6 @@ public:
 		m_levels(4),
 		m_platonicConstantX(1.6180339887498948482045), // golden ratio
 		m_platonicConstantZ(1.0)
-//		m_platonicConstantX(.525731112119133606),
-//		m_platonicConstantZ(.850650808352039932)
 		{}
 	virtual ~Icosahedron() {}
 
