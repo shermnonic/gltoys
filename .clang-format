@@ -1,0 +1,8 @@
+---
+BasedOnStyle: LLVM
+IndentWidth: 4
+---
+Language: Cpp
+BreakBeforeBraces: Allman
+NamespaceIndentation: All
+FixNamespaceComments: False
