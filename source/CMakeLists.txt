@@ -61,8 +61,21 @@ set(params-sources
 )
 
 set(geometry-sources
+  geometry/detail/SphericalHarmonicsMath.h
+  geometry/detail/SphericalHarmonicsMath.cpp
   geometry/Geometry2.h
-  geometry/Geometry2.cpp
+  geometry/Icosahedron.h
+  geometry/Icosahedron.cpp
+  geometry/Penrose.h
+  geometry/Penrose.cpp
+  geometry/SimpleGeometry.h
+  geometry/SimpleGeometry.cpp
+  geometry/SphericalHarmonics.h
+  geometry/SphericalHarmonics.cpp
+  geometry/SphericalHarmonicsFunction.h
+  geometry/SphericalHarmonicsFunction.cpp
+  geometry/Superquadric.h
+  geometry/Superquadric.cpp
 )
 
 source_group(geometry FILES ${geometry-sources})

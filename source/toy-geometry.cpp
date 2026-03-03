@@ -18,13 +18,13 @@ int main(int argc, char* argv[])
     superquadric.create();
     superquadric.writeOBJ("superquadric.obj");
 
-    std::cout << "Write sh...\n";
+    std::cout << "Write SphericalHarmonics...\n";
     SphericalHarmonics sh;
     sh.create();
     sh.writeOBJ("sh.obj");
 
-    std::cout << "Write shf...\n";
-    SHF shf;
+    std::cout << "Write SphericalHarmonicsFunction...\n";
+    SphericalHarmonicsFunction shf;
     shf.create();
     shf.writeOBJ("shf.obj");
 
