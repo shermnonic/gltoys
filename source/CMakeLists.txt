@@ -103,7 +103,7 @@ if (BUILD_GLTOYS_APPS)
     add_executable(toy-glitchsphere toy-glitchsphere.cpp GLFWApp.h GLFWApp.cpp GlitchSphereGeometry.h GlitchSphereGeometry.cpp ${imgui-impl-sources})
     target_link_libraries(toy-glitchsphere PRIVATE toylib imgui::imgui glfw)
 
-    add_executable(toy-geometry toy-geometry.cpp ${geometry-sources})
+    add_executable(toy-geometry toy-geometry-cli.cpp ${geometry-sources})
     target_link_libraries(toy-glitchsphere PRIVATE)
 endif()
 
