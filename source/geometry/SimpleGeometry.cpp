@@ -93,7 +93,7 @@ float *SimpleGeometry::get_vertex_ptr() { return &m_vdata[0]; }
 
 float *SimpleGeometry::get_normal_ptr() { return &m_ndata[0]; }
 
-int *SimpleGeometry::get_index_ptr() { return &m_fdata[0]; }
+unsigned *SimpleGeometry::get_index_ptr() { return &m_fdata[0]; }
 
 bool SimpleGeometry::writeOBJ(const char *filename) const
 {

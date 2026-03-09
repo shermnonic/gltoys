@@ -25,7 +25,7 @@ class SimpleGeometry
     ///@{ Get pointer to tightly packed buffer
     float *get_vertex_ptr();
     float *get_normal_ptr();
-    int *get_index_ptr();
+    unsigned *get_index_ptr();
     ///@}
 
     void clear();
@@ -74,5 +74,5 @@ class SimpleGeometry
   private:
     std::vector<float> m_vdata;
     std::vector<float> m_ndata; // vertex normals
-    std::vector<int> m_fdata;
+    std::vector<unsigned> m_fdata;
 };

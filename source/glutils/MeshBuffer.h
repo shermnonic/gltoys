@@ -3,6 +3,7 @@
 #include <cassert>
 #include <algorithm> // min
 #include <limits>
+#include <span>
 
 #include "MeshBufferTypes.h"
 
@@ -27,11 +28,11 @@ public:
 
     bool merge(const MeshBuffer& other);
     
-    void setVertices( std::vector<float> v ) { assert(v.size()%3==0); m_vertices = v; }
-    void setNormals ( std::vector<float> n ) { assert(hasNormals() && n.size()%3==0); m_normals = n; }
+    void setVertices( std::span<float const> v ) { assert(v.size()%3==0); m_vertices = std::vector<float>{v.begin(), v.end()}; }
+    void setNormals ( std::span<float const> n ) { assert(hasNormals() && n.size()%3==0); m_normals = std::vector<float>{n.begin(), n.end()}; }
     void setColors  ( std::vector<float> c ) { assert(hasColors()  && c.size()%4==0); m_colors  = c; }
     void setUVs     ( std::vector<float> t ) { assert(hasUVs()     && t.size()%2==0); m_uvs     = t; }
-    void setIndices ( std::vector<unsigned> i ) { m_indices = i; }
+    void setIndices ( std::span<unsigned> i ) { m_indices = std::vector<unsigned>{i.begin(), i.end()}; }
 
     size_t numVerticesAllocated() const { return m_vertices.size() / 3; }
     size_t numIndicesAllocated () const { return m_indices .size(); }
