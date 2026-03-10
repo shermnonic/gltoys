@@ -173,6 +173,35 @@ int main(int argc, char* argv[])
 
             ImGui::SliderInt("Scene", &globals.sceneIndex, 0, scenes.size()-1);
       
+            auto fuzzy_equal = [](float a, double b)
+            {
+                return std::fabs(a - static_cast<float>(b)) < 1e-6;
+            };
+
+            ImGui::SeparatorText("Scene specific parameters");
+            if(auto icosahedron = dynamic_cast<Icosahedron*>(scene.getSimpleGeometry()))
+            {
+                float x = icosahedron->getPlatonicConstantsX();
+                float z = icosahedron->getPlatonicConstantsZ();
+                ImGui::SliderFloat("X", &x, 0.0f, 5.0f);
+                ImGui::SliderFloat("Z", &z, 0.5f, 5.0f);
+
+                if(ImGui::Button("Phi"))
+                {
+                    x = 1.6180339887498948482045f; // golden ratio
+                    z = 1.0;
+                }
+
+                if(!fuzzy_equal(x, icosahedron->getPlatonicConstantsX()) 
+                    || !fuzzy_equal(z, icosahedron->getPlatonicConstantsZ()))
+                {
+                    icosahedron->clear();
+                    icosahedron->setPlatonicConstants(x, z);
+                    icosahedron->create();
+                    scene.update();
+                }
+            }
+
             auto changeLevel = [&](int levelChange)
             {
                 auto& geometry = *scene.getSimpleGeometry();
@@ -218,8 +247,6 @@ int main(int argc, char* argv[])
         ImGui::Render();
         GL::clearGLError("main - ImGui::Render()");
 
-
-        // scene.update(params);
 
         // Frame
         {
