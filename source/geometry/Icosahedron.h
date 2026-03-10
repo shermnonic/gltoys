@@ -17,13 +17,13 @@ class Icosahedron : public SimpleGeometry
     double getPlatonicConstantsX() const { return m_platonicConstantX; }
     double getPlatonicConstantsZ() const { return m_platonicConstantZ; }
 
-    void setLevels(int levels)
+    void setLevels(int levels) override
     {
         m_levels = levels;
         if (m_levels <= 0)
             m_levels = 1;
     };
-    int getLevels() const { return m_levels; }
+    int getLevels() const override { return m_levels; }
 
     /// Create an Icosahedron model where each face is subdivided level times
     /// In the limit the subdivision surface is a sphere.

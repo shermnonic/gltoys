@@ -32,7 +32,7 @@ public:
     void setNormals ( std::span<float const> n ) { assert(hasNormals() && n.size()%3==0); m_normals = std::vector<float>{n.begin(), n.end()}; }
     void setColors  ( std::vector<float> c ) { assert(hasColors()  && c.size()%4==0); m_colors  = c; }
     void setUVs     ( std::vector<float> t ) { assert(hasUVs()     && t.size()%2==0); m_uvs     = t; }
-    void setIndices ( std::span<unsigned> i ) { m_indices = std::vector<unsigned>{i.begin(), i.end()}; }
+    void setIndices ( std::span<unsigned const> i ) { m_indices = std::vector<unsigned>{i.begin(), i.end()}; }
 
     size_t numVerticesAllocated() const { return m_vertices.size() / 3; }
     size_t numIndicesAllocated () const { return m_indices .size(); }

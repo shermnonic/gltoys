@@ -26,7 +26,11 @@ class SimpleGeometry
     float *get_vertex_ptr();
     float *get_normal_ptr();
     unsigned *get_index_ptr();
-    ///@}
+
+    float const* get_vertex_ptr() const { return get_vertex_ptr(); };
+    float const* get_normal_ptr() const { return get_normal_ptr(); };
+    unsigned const* get_index_ptr() const { return get_index_ptr(); };
+  ///@}
 
     void clear();
 

@@ -16,42 +16,34 @@
 #include <fstream>
 #include <span>
 
+// @todo: Fix to take SimpleGeometry const&
+void copySimpleGeometryToMeshBuffer(SimpleGeometry& simpleGeometry, MeshBuffer& meshBuffer)
+{
+    meshBuffer.setNumVertices( simpleGeometry.num_vertices() );
+    meshBuffer.setNumIndices( simpleGeometry.num_faces() * 3 );
+    meshBuffer.resize(simpleGeometry.num_vertices(), simpleGeometry.num_faces());
+    meshBuffer.setVertices(std::span<float>(simpleGeometry.get_vertex_ptr(), simpleGeometry.num_vertices()*3));
+    meshBuffer.setNormals(std::span<float>(simpleGeometry.get_normal_ptr(), simpleGeometry.num_vertices()*3));
+    meshBuffer.setIndices(std::span<unsigned>(simpleGeometry.get_index_ptr(), simpleGeometry.num_faces()*3));
+}
+
 class GeometryScene
 {
-private:
-    void copyGeometryToMeshBuffer()
-    {
-        if(meshBuffer && geometry)
-        {
-            meshBuffer->setNumVertices( geometry->num_vertices() );
-            meshBuffer->setNumIndices( geometry->num_faces() * 3 );
-            meshBuffer->resize(geometry->num_vertices(), geometry->num_faces());
-            meshBuffer->setVertices(std::span<float>(geometry->get_vertex_ptr(), geometry->num_vertices()*3));
-            meshBuffer->setNormals(std::span<float>(geometry->get_normal_ptr(), geometry->num_vertices()*3));
-            meshBuffer->setIndices(std::span<unsigned>(geometry->get_index_ptr(), geometry->num_faces()*3));
-        }
-    }
-
 public:  
+    GeometryScene(std::shared_ptr<SimpleGeometry> simpleGeometry)
+    : geometry(simpleGeometry)
+    {
+        assert(simpleGeometry != nullptr);
+        assert(geometry->num_vertices() > 0);
+    }
+    
     bool create()
     {
-        geometry = std::make_shared<Icosahedron>();
-        SimpleGeometry* simpleGeometry = geometry.get();
-        if(auto icosahedron = dynamic_cast<Icosahedron*>(simpleGeometry))
-        {
-            icosahedron->create(1);
-        }
-        else
-        {
-            return false;
-        }
-
         meshBuffer = std::make_shared<MeshBuffer>();
-
-        copyGeometryToMeshBuffer();
-
+        copySimpleGeometryToMeshBuffer(*geometry, *meshBuffer);
         glmesh.setMeshBuffer(meshBuffer);
         glmesh.prepare();
+
         shader = std::make_shared<MeshShader>(meshBuffer->getAttributes(), GLFWApp::getGLSLVersionString());
         
         if (!shader || !shader->load())
@@ -65,6 +57,11 @@ public:
 
     void update()
     {
+        meshBuffer = std::make_shared<MeshBuffer>();
+        copySimpleGeometryToMeshBuffer(*geometry, *meshBuffer);
+        glmesh.setMeshBuffer(meshBuffer);
+        glmesh.prepare();
+
         glmesh.setDirty();
         glmesh.prepare();
     }
@@ -86,6 +83,11 @@ public:
         return meshBuffer.get();
     }
 
+    SimpleGeometry* getSimpleGeometry()
+    {
+        return geometry.get();
+    }
+
 private:
     std::shared_ptr<SimpleGeometry> geometry;
     std::shared_ptr<MeshShader> shader;
@@ -99,10 +101,32 @@ int main(int argc, char* argv[])
     if (!app.create())
         return 1;
 
-    GeometryScene scene;
-    if (!scene.create())
-        return 2;
+    auto icosahedron = std::make_shared<Icosahedron>();
+    auto penrose = std::make_shared<Penrose>();
+    auto superquadric = std::make_shared<Superquadric>();
+    auto sphericalHarmonics = std::make_shared<SphericalHarmonics>();
+    auto sphereFunction = std::make_shared<SphericalHarmonicsFunction>();
+    
+    int const DefaultSubdivisionLevels = 1;
 
+    icosahedron->create(DefaultSubdivisionLevels);
+    penrose->create(DefaultSubdivisionLevels);
+    superquadric->create(DefaultSubdivisionLevels);
+    sphericalHarmonics->create(DefaultSubdivisionLevels);
+    sphereFunction->create(DefaultSubdivisionLevels);
+
+    std::vector const scenes = { 
+        std::make_shared<GeometryScene>(icosahedron),
+        std::make_shared<GeometryScene>(superquadric),
+        std::make_shared<GeometryScene>(sphericalHarmonics),
+        std::make_shared<GeometryScene>(sphereFunction),
+        std::make_shared<GeometryScene>(penrose)
+    };
+
+    for(auto scene : scenes)
+        if(!scene->create())
+            return 2;
+    
     Trackball2 trackball;
     int mousex = 0;
     int mousey = 0;
@@ -128,6 +152,7 @@ int main(int argc, char* argv[])
     
     struct Globals 
     {
+        int sceneIndex = 0;
         float clear_color[4] = { 0.45f, 0.55f, 0.60f, 1.00f };
         bool wireframe = true;
         bool blending = true;
@@ -137,17 +162,35 @@ int main(int argc, char* argv[])
 
     while (app.running())
     {
+        GeometryScene& scene = *scenes[globals.sceneIndex & scenes.size()].get();
+
         app.beginFrame();
         GL::clearGLError("main - begin of main loop");
 
         // Gui
         {
             ImGui::Begin("geometry2");
-            if(ImGui::CollapsingHeader("About"))
+
+            ImGui::SliderInt("Scene", &globals.sceneIndex, 0, scenes.size()-1);
+      
+            auto changeLevel = [&](int levelChange)
             {
-                ImGui::Text("Glitchy geometries by www.386dx25.de.");
-                ImGui::BulletText("Rotate via left mouse button.");
-            }
+                auto& geometry = *scene.getSimpleGeometry();
+                geometry.clear();
+                geometry.create(levelChange == 0 ? DefaultSubdivisionLevels : std::max(geometry.getLevels() + levelChange, 0)); 
+                scene.update();
+            };
+            
+            ImGui::SeparatorText("Subdivision levels (if applicable)");
+            ImGui::Text(std::to_string(scene.getSimpleGeometry()->getLevels()).c_str());
+            ImGui::SameLine();
+            if(ImGui::Button("Reset")) changeLevel(0);
+            ImGui::SameLine();
+            if(ImGui::Button("-")) changeLevel(-1);
+            ImGui::SameLine();
+            if(ImGui::Button("+")) changeLevel(+1);
+
+            ImGui::SeparatorText("Common options");            
             ImGui::Checkbox("Wireframe", &globals.wireframe);
             ImGui::Checkbox("Shading", &scene.getUniforms().shading);
             ImGui::Checkbox("Blending", &globals.blending);

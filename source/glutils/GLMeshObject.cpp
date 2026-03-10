@@ -22,6 +22,7 @@ void GLMeshObject::draw() const
     }
 }
 
+// @todo: Make this input const!
 void GLMeshObject::setMeshBuffer( std::shared_ptr<MeshBuffer> pbuf )
 {
     m_pMeshBuffer = pbuf;
