@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
 
     while (app.running())
     {
-        GeometryScene& scene = *scenes[globals.sceneIndex & scenes.size()].get();
+        GeometryScene& scene = *scenes[globals.sceneIndex % scenes.size()].get();
 
         app.beginFrame();
         GL::clearGLError("main - begin of main loop");
@@ -183,7 +183,7 @@ int main(int argc, char* argv[])
             {
                 float x = icosahedron->getPlatonicConstantsX();
                 float z = icosahedron->getPlatonicConstantsZ();
-                ImGui::SliderFloat("X", &x, 0.0f, 5.0f);
+                ImGui::SliderFloat("X", &x, 0.003f, 5.0f);
                 ImGui::SliderFloat("Z", &z, 0.5f, 5.0f);
 
                 if(ImGui::Button("Phi"))
@@ -201,7 +201,8 @@ int main(int argc, char* argv[])
                     scene.update();
                 }
             }
-            else if(auto superquadric = dynamic_cast<Superquadric*>(scene.getSimpleGeometry()))
+            
+            if(auto superquadric = dynamic_cast<Superquadric*>(scene.getSimpleGeometry()))
             {
                 float alpha = superquadric->getAlpha();
                 float beta = superquadric->getBeta();
@@ -220,6 +221,28 @@ int main(int argc, char* argv[])
                     superquadric->clear();
                     superquadric->setQuadric(alpha, beta);
                     superquadric->create();
+                    scene.update();
+                }
+            }
+            
+            if(auto sphericalHarmonics = dynamic_cast<SphericalHarmonics*>(scene.getSimpleGeometry()))
+            {
+                int L = sphericalHarmonics->getL();
+                int M = sphericalHarmonics->getM();
+                ImGui::SliderInt("L", &L, 0, 10);
+                ImGui::SliderInt("M", &M, 0, L);
+
+                if(ImGui::Button("LM"))
+                {
+                    L = 4;
+                    M = 0;
+                }
+
+                if(L != sphericalHarmonics->getL() || M != sphericalHarmonics->getM())
+                {
+                    sphericalHarmonics->clear();
+                    sphericalHarmonics->setLM(L, M);
+                    sphericalHarmonics->create();
                     scene.update();
                 }
             }
