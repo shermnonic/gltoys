@@ -15,8 +15,8 @@ class Superquadric : public SimpleGeometry
 
     void create(int unused = -1);
 
-    double alpha() const { return m_alpha; }
-    double beta() const { return m_beta; }
+    double getAlpha() const { return m_alpha; }
+    double getBeta() const { return m_beta; }
 
     void setQuadric(double alpha, double beta)
     {

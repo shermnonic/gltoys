@@ -193,11 +193,33 @@ int main(int argc, char* argv[])
                 }
 
                 if(!fuzzy_equal(x, icosahedron->getPlatonicConstantsX()) 
-                    || !fuzzy_equal(z, icosahedron->getPlatonicConstantsZ()))
+                || !fuzzy_equal(z, icosahedron->getPlatonicConstantsZ()))
                 {
                     icosahedron->clear();
                     icosahedron->setPlatonicConstants(x, z);
                     icosahedron->create();
+                    scene.update();
+                }
+            }
+            else if(auto superquadric = dynamic_cast<Superquadric*>(scene.getSimpleGeometry()))
+            {
+                float alpha = superquadric->getAlpha();
+                float beta = superquadric->getBeta();
+                ImGui::SliderFloat("alpha", &alpha, 0.01, 3.99);
+                ImGui::SliderFloat("beta", &beta, 0.01, 3.99);
+
+                if(ImGui::Button("Q0"))
+                {
+                    alpha = 0.5;
+                    beta = 0.5;
+                }
+
+                if(!fuzzy_equal(alpha, superquadric->getAlpha()) 
+                || !fuzzy_equal(beta, superquadric->getBeta()))
+                {
+                    superquadric->clear();
+                    superquadric->setQuadric(alpha, beta);
+                    superquadric->create();
                     scene.update();
                 }
             }
