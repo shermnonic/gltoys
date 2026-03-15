@@ -13,7 +13,9 @@
 
 #include <geometry/Geometry2.h>
 
+#include <algorithm>
 #include <fstream>
+#include <ranges>
 #include <span>
 
 // @todo: Fix to take SimpleGeometry const&
@@ -30,11 +32,17 @@ void copySimpleGeometryToMeshBuffer(SimpleGeometry& simpleGeometry, MeshBuffer& 
 class GeometryScene
 {
 public:  
-    GeometryScene(std::shared_ptr<SimpleGeometry> simpleGeometry)
-    : geometry(simpleGeometry)
+    GeometryScene(std::string name, std::shared_ptr<SimpleGeometry> simpleGeometry)
+    : name(name)
+    , geometry(simpleGeometry)
     {
         assert(simpleGeometry != nullptr);
         assert(geometry->num_vertices() > 0);
+    }
+
+    std::string getName()
+    {
+        return name;
     }
     
     bool create()
@@ -89,6 +97,7 @@ public:
     }
 
 private:
+    std::string name;
     std::shared_ptr<SimpleGeometry> geometry;
     std::shared_ptr<MeshShader> shader;
     std::shared_ptr<MeshBuffer> meshBuffer;
@@ -116,11 +125,11 @@ int main(int argc, char* argv[])
     sphereFunction->create(DefaultSubdivisionLevels);
 
     std::vector const scenes = { 
-        std::make_shared<GeometryScene>(icosahedron),
-        std::make_shared<GeometryScene>(superquadric),
-        std::make_shared<GeometryScene>(sphericalHarmonics),
-        std::make_shared<GeometryScene>(sphereFunction),
-        std::make_shared<GeometryScene>(penrose)
+        std::make_shared<GeometryScene>("Icosahedron", icosahedron),
+        std::make_shared<GeometryScene>("Superquadric", superquadric),
+        std::make_shared<GeometryScene>("Spherical Harmonics", sphericalHarmonics),
+        std::make_shared<GeometryScene>("Random Harmonic", sphereFunction),
+        std::make_shared<GeometryScene>("Penrose Tiling", penrose)
     };
 
     for(auto scene : scenes)
@@ -172,16 +181,17 @@ int main(int argc, char* argv[])
         // Gui
         {
             ImGui::Begin("geometry2");
-            
+
             {
-                const char* sceneNames[] = { "Icosahedron", "Superquadric", "Spherical Harmonics", "Random Harmonic Function", "Penrose Tiling" };
+                auto const sceneNames = std::views::transform(scenes, [](auto scene) { return scene->getName(); }) | std::ranges::to<std::vector>();
+              
                 std::size_t selected = globals.sceneIndex;
-                if (ImGui::BeginCombo("Scene", sceneNames[selected]))
+                if (ImGui::BeginCombo("Scene", sceneNames[selected].c_str()))
                 {
-                    for (int n = 0; n < IM_ARRAYSIZE(sceneNames); n++)
+                    for (int n = 0; n < sceneNames.size(); n++)
                     {
                         bool is_selected = (n == selected);
-                        if (ImGui::Selectable(sceneNames[n], is_selected))
+                        if (ImGui::Selectable(sceneNames[n].c_str(), is_selected))
                         {
                             selected = n;
                         }

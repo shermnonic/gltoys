@@ -14,7 +14,7 @@ else()
     message(FATAL_ERROR "Vcpkg not found")
 endif()
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 set(BUILD_GLTOYS_APPS true CACHE BOOL "Build gltoys applications.")
 set(BUILD_TOYLIB_TEST_APPS true CACHE BOOL "Build toylib test applications for development.")
