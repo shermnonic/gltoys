@@ -156,8 +156,9 @@ int main(int argc, char* argv[])
         float clear_color[4] = { 0.45f, 0.55f, 0.60f, 1.00f };
         bool animate = false;
         bool wireframe = true;
-        bool blending = true;
-        bool culling = true;
+        bool blending = false;
+        bool culling = false;
+        bool shading = false;
         float zoom = 3.f;
         float t = 0.f;
     } globals;
@@ -350,7 +351,7 @@ int main(int argc, char* argv[])
             ImGui::SeparatorText("Common options");            
             ImGui::Checkbox("Animate", &globals.animate);
             ImGui::Checkbox("Wireframe", &globals.wireframe);
-            ImGui::Checkbox("Shading", &scene.getUniforms().shading);
+            ImGui::Checkbox("Shading", &globals.shading);   scene.getUniforms().shading = globals.shading;
             ImGui::Checkbox("Blending", &globals.blending);
             ImGui::Checkbox("Culling", &globals.culling);
             ImGui::SliderFloat("Zoom", &globals.zoom, 1.f, 10.0f);
