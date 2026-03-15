@@ -172,8 +172,29 @@ int main(int argc, char* argv[])
         // Gui
         {
             ImGui::Begin("geometry2");
+            
+            {
+                const char* sceneNames[] = { "Icosahedron", "Superquadric", "Spherical Harmonics", "Random Harmonic Function", "Penrose Tiling" };
+                std::size_t selected = globals.sceneIndex;
+                if (ImGui::BeginCombo("Scene", sceneNames[selected]))
+                {
+                    for (int n = 0; n < IM_ARRAYSIZE(sceneNames); n++)
+                    {
+                        bool is_selected = (n == selected);
+                        if (ImGui::Selectable(sceneNames[n], is_selected))
+                        {
+                            selected = n;
+                        }
+                        if (is_selected)
+                        {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                globals.sceneIndex = selected;
+            }
 
-            ImGui::SliderInt("Scene", &globals.sceneIndex, 0, scenes.size()-1);
       
             auto fuzzy_equal = [](float a, double b)
             {
