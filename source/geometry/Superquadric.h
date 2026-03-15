@@ -3,39 +3,59 @@
 
 class Superquadric : public SimpleGeometry
 {
-  public:
-    enum Mode
+public:
+    enum class Mode
     {
         Quadric,
         TensorGlyph
     };
 
-    Superquadric()
-        : m_mode(Quadric), m_alpha(1.0), m_beta(1.0), m_gamma(6.0) {};
+    struct QuadricParameters
+    {
+        double alpha = 1.0;
+        double beta = 1.0;
+    };
+
+    struct TensorParameters
+    {
+        double planarity = 0.0;
+        double linearity = 0.0;
+        double sharpness = 6.0;
+    };
+
+    Superquadric(Mode mode = Mode::Quadric)
+    : mode(mode)
+    {
+        create();
+    };
 
     void create(int unused = -1);
 
-    double getAlpha() const { return m_alpha; }
-    double getBeta() const { return m_beta; }
+    Mode getMode() const { return mode; }
+
+    double getAlpha() const { return quadricParameters.alpha; }
+    double getBeta() const { return quadricParameters.beta; }
 
     void setQuadric(double alpha, double beta)
     {
-        m_mode = Quadric;
-        m_alpha = alpha;
-        m_beta = beta;
+        mode = Mode::Quadric;
+        quadricParameters.alpha = alpha;
+        quadricParameters.beta = beta;
     }
 
-    void setTensorGlyph(double cl, double cp)
+    void setParameters(TensorParameters newTensorParameters)
     {
-        m_mode = TensorGlyph;
-        m_cl = cl;
-        m_cp = cp;
+        mode = Mode::TensorGlyph;
+        tensorParameters = newTensorParameters;
     }
 
-    void setTensorGlyphSharpness(double gamma) { m_gamma = gamma; }
+    TensorParameters getTensorParameters() const
+    {
+        return tensorParameters;
+    }
 
   private:
-    int m_mode;
-    double m_alpha, m_beta;     ///< Quadric parameters
-    double m_cl, m_cp, m_gamma; ///< Tensor glyph parameters
+    Mode mode = Mode::Quadric;
+    QuadricParameters quadricParameters;
+    TensorParameters tensorParameters;
 };

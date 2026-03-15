@@ -47,7 +47,7 @@ namespace
 
 }
 
-void Superquadric::create(int unused)
+void Superquadric::create(int)
 {
     clear();
 
@@ -69,15 +69,15 @@ void Superquadric::create(int unused)
             double phi = (double)j * phi_step;
 
             vec3 v;
-            switch (m_mode)
+            switch (mode)
             {
             default:
-            case Quadric:
+            case Mode::Quadric:
                 // FIXME: Decide when to use qx or qz automatically.
-                v = qx(theta, phi, m_alpha, m_beta);
+                v = qx(theta, phi, quadricParameters.alpha, quadricParameters.beta);
                 break;
-            case TensorGlyph:
-                v = superquadric_tensor(m_cp, m_cl, m_gamma, theta, phi);
+            case Mode::TensorGlyph:
+                v = superquadric_tensor(tensorParameters.planarity, tensorParameters.linearity, tensorParameters.sharpness, theta, phi);
                 break;
             }
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <geometry/SimpleGeometry.h>
+#include <iostream>
 
 /// Icosahedron with subdivision, nice regular sphere approximation
 class Icosahedron : public SimpleGeometry
@@ -7,7 +8,10 @@ class Icosahedron : public SimpleGeometry
   public:
     static constexpr double GoldenRatio = 1.6180339887498948482045;
 
-    Icosahedron() = default;
+    Icosahedron() : SimpleGeometry() 
+    {
+        create();
+    };
 
     void setPlatonicConstants(double X, double Z)
     {
@@ -27,7 +31,7 @@ class Icosahedron : public SimpleGeometry
 
     /// Create an Icosahedron model where each face is subdivided level times
     /// In the limit the subdivision surface is a sphere.
-    virtual void create(int level = -1);
+    void create(int level = -1);
 
   protected:
     /// Recursive face subdivision routine

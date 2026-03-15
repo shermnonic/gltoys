@@ -3,6 +3,11 @@
 
 using namespace detail;
 
+SphericalHarmonics::SphericalHarmonics()
+{
+    create();
+}
+
 void SphericalHarmonics::setLM(int l, int m)
 {
     m_l = clamp(l, 0, 12);

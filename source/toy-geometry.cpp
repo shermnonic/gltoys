@@ -13,6 +13,8 @@
 
 #include <geometry/Geometry2.h>
 
+#include <gsl/gsl>
+
 #include <algorithm>
 #include <fstream>
 #include <ranges>
@@ -110,26 +112,15 @@ int main(int argc, char* argv[])
     if (!app.create())
         return 1;
 
-    auto icosahedron = std::make_shared<Icosahedron>();
-    auto penrose = std::make_shared<Penrose>();
-    auto superquadric = std::make_shared<Superquadric>();
-    auto sphericalHarmonics = std::make_shared<SphericalHarmonics>();
-    auto sphereFunction = std::make_shared<SphericalHarmonicsFunction>();
-    
-    int const DefaultSubdivisionLevels = 1;
-
-    icosahedron->create(DefaultSubdivisionLevels);
-    penrose->create(DefaultSubdivisionLevels);
-    superquadric->create(DefaultSubdivisionLevels);
-    sphericalHarmonics->create(DefaultSubdivisionLevels);
-    sphereFunction->create(DefaultSubdivisionLevels);
+    int const DefaultSubdivisionLevels = 4;
 
     std::vector const scenes = { 
-        std::make_shared<GeometryScene>("Icosahedron", icosahedron),
-        std::make_shared<GeometryScene>("Superquadric", superquadric),
-        std::make_shared<GeometryScene>("Spherical Harmonics", sphericalHarmonics),
-        std::make_shared<GeometryScene>("Random Harmonic", sphereFunction),
-        std::make_shared<GeometryScene>("Penrose Tiling", penrose)
+        std::make_shared<GeometryScene>("Icosahedron", std::make_shared<Icosahedron>()),
+        std::make_shared<GeometryScene>("Superquadric", std::make_shared<Superquadric>()),
+        std::make_shared<GeometryScene>("Tensor glyph", std::make_shared<Superquadric>(Superquadric::Mode::TensorGlyph)),
+        std::make_shared<GeometryScene>("Spherical Harmonics", std::make_shared<SphericalHarmonics>()),
+        std::make_shared<GeometryScene>("Random Harmonic", std::make_shared<SphericalHarmonicsFunction>()),
+        std::make_shared<GeometryScene>("Penrose Tiling", std::make_shared<Penrose>())
     };
 
     for(auto scene : scenes)
@@ -208,7 +199,7 @@ int main(int argc, char* argv[])
       
             auto fuzzy_equal = [](float a, double b)
             {
-                return std::fabs(a - static_cast<float>(b)) < 1e-6;
+                return std::fabs(a - gsl::narrow_cast<float>(b)) < 1e-6;
             };
 
             ImGui::SeparatorText("Scene specific parameters");
@@ -238,24 +229,54 @@ int main(int argc, char* argv[])
             
             if(auto superquadric = dynamic_cast<Superquadric*>(scene.getSimpleGeometry()))
             {
-                float alpha = superquadric->getAlpha();
-                float beta = superquadric->getBeta();
-                ImGui::SliderFloat("alpha", &alpha, 0.01, 3.99);
-                ImGui::SliderFloat("beta", &beta, 0.01, 3.99);
-
-                if(ImGui::Button("Q0"))
+                if(superquadric->getMode() == Superquadric::Mode::Quadric)
                 {
-                    alpha = 0.5;
-                    beta = 0.5;
+                    float alpha = superquadric->getAlpha();
+                    float beta = superquadric->getBeta();
+                    ImGui::SliderFloat("alpha", &alpha, 0.01, 3.99);
+                    ImGui::SliderFloat("beta", &beta, 0.01, 3.99);
+
+                    if(ImGui::Button("Q0"))
+                    {
+                        alpha = 1.0;
+                        beta = 1.0;
+                    }
+
+                    if(!fuzzy_equal(alpha, superquadric->getAlpha()) 
+                    || !fuzzy_equal(beta, superquadric->getBeta()))
+                    {
+                        superquadric->clear();
+                        superquadric->setQuadric(alpha, beta);
+                        superquadric->create();
+                        scene.update();
+                    }
                 }
-
-                if(!fuzzy_equal(alpha, superquadric->getAlpha()) 
-                || !fuzzy_equal(beta, superquadric->getBeta()))
+                else if(superquadric->getMode() == Superquadric::Mode::TensorGlyph)
                 {
-                    superquadric->clear();
-                    superquadric->setQuadric(alpha, beta);
-                    superquadric->create();
-                    scene.update();
+                    float cp = gsl::narrow_cast<float>(superquadric->getTensorParameters().planarity);
+                    float cl = gsl::narrow_cast<float>(superquadric->getTensorParameters().linearity);
+                    float gamma = gsl::narrow_cast<float>(superquadric->getTensorParameters().sharpness);
+                    ImGui::SliderFloat("planarity", &cp, 0.0f, 0.5f);
+                    ImGui::SliderFloat("linearity", &cl, 0.0f, 0.5f);
+                    ImGui::SliderFloat("sharpness", &gamma, 0.0f, 30.0f);
+
+                    if(ImGui::Button("T0"))
+                    {
+                        auto const defaultParams = Superquadric::TensorParameters();
+                        cp = gsl::narrow_cast<float>(defaultParams.planarity);
+                        cl = gsl::narrow_cast<float>(defaultParams.linearity);
+                        gamma = gsl::narrow_cast<float>(defaultParams.sharpness);
+                    }
+
+                    if(!fuzzy_equal(cp, superquadric->getTensorParameters().planarity)
+                    || !fuzzy_equal(cl, superquadric->getTensorParameters().linearity)
+                    || !fuzzy_equal(gamma, superquadric->getTensorParameters().sharpness))
+                    {
+                        superquadric->clear();
+                        superquadric->setParameters({.planarity = cp, .linearity = cl, .sharpness = gamma});
+                        superquadric->create();
+                        scene.update();
+                    }
                 }
             }
             

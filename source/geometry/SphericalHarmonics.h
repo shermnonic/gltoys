@@ -4,6 +4,8 @@
 class SphericalHarmonics : public Icosahedron
 {
   public:
+    SphericalHarmonics();
+    
     void create(int level = -1);
     void update();
     void setLM(int l, int m);
