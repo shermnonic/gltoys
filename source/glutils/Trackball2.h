@@ -72,6 +72,12 @@ public:
     /// Return pure rotation part of current trackball matrix, \sa getModelviewMatrix
     glm::mat3 getRotationMatrix() const;
 
+    void resetRotation()
+    {
+        m_qrot = glm::fquat(1,0,0,0);
+        m_cur_qrot = glm::fquat(1,0,0,0);
+    }
+
 protected:
     void update( int ax, int ay, int bx, int by, int mode );   
     void update( float ax, float ay, float bx, float by, int mode );

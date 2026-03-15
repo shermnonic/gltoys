@@ -112,6 +112,8 @@ int main(int argc, char* argv[])
     if (!app.create())
         return 1;
 
+    // -- Scenes
+
     int const DefaultSubdivisionLevels = 4;
 
     std::vector const scenes = { 
@@ -127,6 +129,8 @@ int main(int argc, char* argv[])
         if(!scene->create())
             return 2;
     
+    // -- Mouse control
+
     Trackball2 trackball;
     int mousex = 0;
     int mousey = 0;
@@ -142,13 +146,27 @@ int main(int argc, char* argv[])
         {
             ImGuiIO& io = ImGui::GetIO();
             if(!io.WantCaptureMouse)
-                trackball.start(mousex, mousey, Trackball2::Rotate);
+            {
+                if(e.button == MouseEvent::Button::Middle)
+                {
+                    trackball.start(mousex, mousey, Trackball2::Zoom);
+                }
+                else
+                {
+                    trackball.start(mousex, mousey, Trackball2::Rotate);
+                }
+            }
         }
         else if (e.type == MouseEvent::Type::ButtonRelease)
         {
             trackball.stop();
         }
     });
+
+    trackball.setSpeed(15.f);
+    trackball.setZoom(3.f);
+
+    // -- Main loop
     
     struct Globals 
     {
@@ -159,7 +177,6 @@ int main(int argc, char* argv[])
         bool blending = false;
         bool culling = false;
         bool shading = false;
-        float zoom = 3.f;
         float t = 0.f;
     } globals;
 
@@ -354,7 +371,11 @@ int main(int argc, char* argv[])
             ImGui::Checkbox("Shading", &globals.shading);   scene.getUniforms().shading = globals.shading;
             ImGui::Checkbox("Blending", &globals.blending);
             ImGui::Checkbox("Culling", &globals.culling);
-            ImGui::SliderFloat("Zoom", &globals.zoom, 1.f, 10.0f);
+            if (ImGui::Button("Reset Camera"))
+            {
+                trackball.resetRotation();
+                trackball.setZoom(3.f);
+            }
             if (ImGui::Button("Save .obj"))
             {
                 if (auto const* mb = scene.getMeshBuffer())
@@ -406,9 +427,10 @@ int main(int argc, char* argv[])
             glPolygonMode(GL_FRONT_AND_BACK, globals.wireframe ? GL_LINE : GL_FILL);
             GL::checkGLError("main - glPolygonMode()");
 
-            float aspect = width / (float)height;
+            float const aspect = width / (float)height;
+            float const zoom = trackball.getZoom(); //globals.zoom;
             scene.render(
-                glm::translate(glm::mat4(1.0), glm::vec3(0.f, 0.f, -globals.zoom))
+                glm::translate(glm::mat4(1.0), glm::vec3(0.f, 0.f, -zoom))
                 * glm::mat4(trackball.getRotationMatrix()),
                 glm::perspective(glm::radians(45.f), aspect, .1f, 100.f));
         }
