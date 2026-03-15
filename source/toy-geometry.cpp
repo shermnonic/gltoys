@@ -154,10 +154,12 @@ int main(int argc, char* argv[])
     {
         int sceneIndex = 0;
         float clear_color[4] = { 0.45f, 0.55f, 0.60f, 1.00f };
+        bool animate = false;
         bool wireframe = true;
         bool blending = true;
         bool culling = true;
         float zoom = 3.f;
+        float t = 0.f;
     } globals;
 
     while (app.running())
@@ -181,7 +183,7 @@ int main(int argc, char* argv[])
             ImGui::SeparatorText("Scene specific parameters");
             if(auto icosahedron = dynamic_cast<Icosahedron*>(scene.getSimpleGeometry()))
             {
-                float x = icosahedron->getPlatonicConstantsX();
+                float x = globals.animate ? globals.t : icosahedron->getPlatonicConstantsX();
                 float z = icosahedron->getPlatonicConstantsZ();
                 ImGui::SliderFloat("X", &x, 0.003f, 5.0f);
                 ImGui::SliderFloat("Z", &z, 0.5f, 5.0f);
@@ -192,8 +194,9 @@ int main(int argc, char* argv[])
                     z = 1.0;
                 }
 
-                if(!fuzzy_equal(x, icosahedron->getPlatonicConstantsX()) 
-                || !fuzzy_equal(z, icosahedron->getPlatonicConstantsZ()))
+                if( globals.animate
+                || !fuzzy_equal(x, icosahedron->getPlatonicConstantsX()) 
+                || !fuzzy_equal(z, icosahedron->getPlatonicConstantsZ()) )
                 {
                     icosahedron->clear();
                     icosahedron->setPlatonicConstants(x, z);
@@ -247,6 +250,34 @@ int main(int argc, char* argv[])
                 }
             }
 
+            if(auto sphericalHarmonicsFunction = dynamic_cast<SphericalHarmonicsFunction*>(scene.getSimpleGeometry()))
+            {
+                bool dirty = false;
+                if(ImGui::Button("Zero"))
+                {
+                    sphericalHarmonicsFunction->resetCoefficients();
+                    dirty = true;
+                }
+                ImGui::SameLine();
+                if(ImGui::Button("Rand"))
+                {
+                    sphericalHarmonicsFunction->randomizeCoefficients();
+                    dirty = true;
+                }
+                ImGui::SameLine();
+                if(ImGui::Button("Sym"))
+                {
+                    sphericalHarmonicsFunction->symmetrizeCoefficients();
+                    dirty = true;
+                }
+
+                if(dirty)
+                {
+                    sphericalHarmonicsFunction->update();
+                    scene.update();
+                }
+            }
+
             auto changeLevel = [&](int levelChange)
             {
                 auto& geometry = *scene.getSimpleGeometry();
@@ -265,6 +296,7 @@ int main(int argc, char* argv[])
             if(ImGui::Button("+")) changeLevel(+1);
 
             ImGui::SeparatorText("Common options");            
+            ImGui::Checkbox("Animate", &globals.animate);
             ImGui::Checkbox("Wireframe", &globals.wireframe);
             ImGui::Checkbox("Shading", &scene.getUniforms().shading);
             ImGui::Checkbox("Blending", &globals.blending);
@@ -329,6 +361,15 @@ int main(int argc, char* argv[])
         }
 
         app.endFrame();
+
+
+        if (globals.animate)
+        {
+            constexpr float secondsPerCycle = 4.f;
+            constexpr float tmax = 5.f;
+            globals.t += (float)app.tic()*tmax/secondsPerCycle;
+            while (globals.t >= tmax) globals.t -= tmax;
+        }      
     }
 
     return 0;

@@ -4,7 +4,7 @@
 class SphericalHarmonicsFunction : public Icosahedron
 {
   public:
-    SphericalHarmonicsFunction() : m_order(10) {}
+    SphericalHarmonicsFunction(int order = 10) : m_order(order) {}
 
     void create(int level = -1);
     void update();
