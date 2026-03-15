@@ -1,6 +1,7 @@
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glm REQUIRED)
+find_package(Microsoft.GSL CONFIG REQUIRED)
 
 if (BUILD_GLTOYS_APPS)
     find_package(glfw3 CONFIG REQUIRED)
@@ -60,6 +61,25 @@ set(params-sources
   utils/ParameterTypes.h
 )
 
+set(geometry-sources
+  geometry/detail/SphericalHarmonicsMath.h
+  geometry/detail/SphericalHarmonicsMath.cpp
+  geometry/Geometry2.h
+  geometry/Icosahedron.h
+  geometry/Icosahedron.cpp
+  geometry/Penrose.h
+  geometry/Penrose.cpp
+  geometry/SimpleGeometry.h
+  geometry/SimpleGeometry.cpp
+  geometry/SphericalHarmonics.h
+  geometry/SphericalHarmonics.cpp
+  geometry/SphericalHarmonicsFunction.h
+  geometry/SphericalHarmonicsFunction.cpp
+  geometry/Superquadric.h
+  geometry/Superquadric.cpp
+)
+
+source_group(geometry FILES ${geometry-sources})
 source_group(glutils FILES ${glutils-sources})
 source_group(imgui-impl FILES ${imgui-impl-sources})
 source_group(fx FILES ${fx-sources})
@@ -76,13 +96,18 @@ target_link_libraries(toylib GLEW::GLEW ${OPENGL_LIBRARY})
 
 if (BUILD_GLTOYS_APPS)
     add_executable(toy-hello toy-hello.cpp ${imgui-impl-sources})
-    target_link_libraries(toy-hello PRIVATE toylib imgui::imgui glfw)
+    target_link_libraries(toy-hello PRIVATE toylib imgui::imgui glfw Microsoft.GSL::GSL)
 
     add_executable(toy-mnoise toy-mnoise.cpp GLFWApp.h GLFWApp.cpp MCubesObject.h MCubesObject.cpp MCubesObjectRenderer.h MCubesObjectRenderer.cpp ${imgui-impl-sources})
-    target_link_libraries(toy-mnoise PRIVATE toylib imgui::imgui glfw)
+    target_link_libraries(toy-mnoise PRIVATE toylib imgui::imgui glfw Microsoft.GSL::GSL)
 
     add_executable(toy-glitchsphere toy-glitchsphere.cpp GLFWApp.h GLFWApp.cpp GlitchSphereGeometry.h GlitchSphereGeometry.cpp ${imgui-impl-sources})
-    target_link_libraries(toy-glitchsphere PRIVATE toylib imgui::imgui glfw)
+    target_link_libraries(toy-glitchsphere PRIVATE toylib imgui::imgui glfw Microsoft.GSL::GSL)
+
+    add_executable(toy-geometry-cli toy-geometry-cli.cpp ${geometry-sources})
+    
+    add_executable(toy-geometry toy-geometry.cpp ${geometry-sources} GLFWApp.h GLFWApp.cpp)
+    target_link_libraries(toy-geometry PRIVATE toylib imgui::imgui glfw Microsoft.GSL::GSL)
 endif()
 
 if (BUILD_TOYLIB_TEST_APPS)
