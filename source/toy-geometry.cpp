@@ -67,6 +67,8 @@ public:
 
     void update()
     {
+        geometry->recomputeVertexNormals();
+
         meshBuffer = std::make_shared<MeshBuffer>();
         copySimpleGeometryToMeshBuffer(*geometry, *meshBuffer);
         glmesh.setMeshBuffer(meshBuffer);

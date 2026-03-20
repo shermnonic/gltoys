@@ -4,10 +4,15 @@
 int main(int argc, char* argv[])
 {
     std::cout << "Write icosahedron...\n";
-    Icosahedron icosahedron;
-    icosahedron.create(1);
-    icosahedron.writeOBJ("icosahedron-1.obj");
+    
+    Icosahedron icosahedron(1);
+    icosahedron.writeOBJ("icosahedron.obj");
 
+    icosahedron.unifyVertices();
+    icosahedron.recomputeVertexNormals();
+    icosahedron.writeOBJ("icosahedron-recomputed-normals.obj");
+
+/*
     std::cout << "Write penrose...\n";
     Penrose penrose;
     penrose.create();
@@ -27,6 +32,6 @@ int main(int argc, char* argv[])
     SphericalHarmonicsFunction shf;
     shf.create();
     shf.writeOBJ("shf.obj");
-
+*/
     return 0;
 }
