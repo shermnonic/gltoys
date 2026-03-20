@@ -8,9 +8,9 @@ class Icosahedron : public SimpleGeometry
   public:
     static constexpr double GoldenRatio = 1.6180339887498948482045;
 
-    Icosahedron() : SimpleGeometry() 
+    Icosahedron(int levels = 4) : SimpleGeometry() 
     {
-        create();
+        create(levels);
     };
 
     void setPlatonicConstants(double X, double Z)
