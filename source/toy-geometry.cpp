@@ -193,6 +193,7 @@ int main(int argc, char* argv[])
 
     bool sceneNeedsUpdate = false;
     std::optional<int> newLevel;
+    bool icosahedronGlitchParametersChanged = false;
 
     while (app.running())
     {
@@ -200,22 +201,25 @@ int main(int argc, char* argv[])
         
         if(sceneNeedsUpdate)
         {
+            // Some geometries need an additional update() call even after create(), e.g. to update displacement mesh
+            bool const additionalUpdateCallNeeded =                 
+                dynamic_cast<SphericalHarmonics*>(scene.getSimpleGeometry()) 
+                ||  dynamic_cast<SphericalHarmonicsFunction*>(scene.getSimpleGeometry());
+            
+            // For most geometries a create() call makes another update() call obsolete
+            bool const doUpdateCallSufficient = !newLevel.has_value() || additionalUpdateCallNeeded; 
+
             auto& geometry = *scene.getSimpleGeometry();
             if(newLevel.has_value())
             {
                 geometry.create(newLevel.value() == 0 ? DefaultSubdivisionLevels : std::max(geometry.getLevels() + newLevel.value(), 0));
-
-                // Update displacement meshes
-                if(auto sphericalHarmonics = dynamic_cast<SphericalHarmonics*>(scene.getSimpleGeometry()))
-                {
-                    sphericalHarmonics->update();
-                }
-                else if(auto sphericalHarmonicsFunction = dynamic_cast<SphericalHarmonicsFunction*>(scene.getSimpleGeometry()))
-                {
-                    sphericalHarmonicsFunction->update();
-                }
             }
-            else
+            else if(icosahedronGlitchParametersChanged)
+            {
+                geometry.create();
+            }
+
+            if(doUpdateCallSufficient)
             {
                 geometry.update();
             }
@@ -223,6 +227,7 @@ int main(int argc, char* argv[])
             scene.update();
 
             sceneNeedsUpdate = false;
+            icosahedronGlitchParametersChanged = false;
             newLevel.reset();
         }
 
@@ -263,7 +268,6 @@ int main(int argc, char* argv[])
 
             ImGui::SeparatorText("Scene specific parameters");
 
-          #if 0 // Disable Icosahedron glitch UI until update/create issue is fixed
             if(auto icosahedron = dynamic_cast<Icosahedron*>(scene.getSimpleGeometry()))
             {
                 float x = globals.animate ? globals.t : icosahedron->getPlatonicConstantsX();
@@ -282,10 +286,10 @@ int main(int argc, char* argv[])
                 || !fuzzy_equal(z, icosahedron->getPlatonicConstantsZ()) )
                 {
                     icosahedron->setPlatonicConstants(x, z);
+                    icosahedronGlitchParametersChanged = true;
                     sceneNeedsUpdate = true;
                 }
             }
-          #endif
             
             if(auto superquadric = dynamic_cast<Superquadric*>(scene.getSimpleGeometry()))
             {
