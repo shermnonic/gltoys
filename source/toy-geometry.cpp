@@ -266,10 +266,10 @@ int main(int argc, char* argv[])
                 return std::fabs(a - gsl::narrow_cast<float>(b)) < 1e-6;
             };
 
-            ImGui::SeparatorText("Scene specific parameters");
-
             if(auto icosahedron = dynamic_cast<Icosahedron*>(scene.getSimpleGeometry()))
             {
+                ImGui::SeparatorText("Icosahedron parameters");
+
                 float x = globals.animate ? globals.t : icosahedron->getPlatonicConstantsX();
                 float z = icosahedron->getPlatonicConstantsZ();
                 ImGui::SliderFloat("X", &x, 0.003f, 5.0f);
@@ -290,7 +290,9 @@ int main(int argc, char* argv[])
                     sceneNeedsUpdate = true;
                 }
             }
-            
+
+            ImGui::SeparatorText("Scene specific parameters");
+
             if(auto superquadric = dynamic_cast<Superquadric*>(scene.getSimpleGeometry()))
             {
                 if(superquadric->getMode() == Superquadric::Mode::Quadric)
@@ -385,6 +387,10 @@ int main(int argc, char* argv[])
                 {
                     sceneNeedsUpdate = true; // but no create() call needed!
                 }
+
+
+                auto const& coeffs = sphericalHarmonicsFunction->getCoeffs();
+                ImGui::PlotHistogram("Harmonics", coeffs.data()+1, coeffs.size()-1, 0, "Harmonics", FLT_MAX, FLT_MAX, {300, 200});
             }
 
             auto changeLevel = [&](int levelChange)
