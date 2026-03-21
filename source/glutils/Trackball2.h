@@ -72,10 +72,21 @@ public:
     /// Return pure rotation part of current trackball matrix, \sa getModelviewMatrix
     glm::mat3 getRotationMatrix() const;
 
+    void setRotationAngleDegreeAxis( float thetaDegree, float x, float y, float z )
+    {
+        float const theta = thetaDegree * M_PI / 180.f;
+        glm::fquat r(std::cos(theta/2.f), std::sin(theta/2.f) * glm::normalize(glm::vec3{x, y, z}));
+        m_qrot = m_cur_qrot = r;
+    }
+
     void resetRotation()
     {
-        m_qrot = glm::fquat(1,0,0,0);
-        m_cur_qrot = glm::fquat(1,0,0,0);
+        m_qrot = m_cur_qrot = glm::fquat(1,0,0,0);
+    }
+
+    void resetTranslation()
+    {
+        m_trans = {};
     }
 
 protected:

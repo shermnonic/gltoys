@@ -157,14 +157,11 @@ int main(int argc, char* argv[])
             ImGuiIO& io = ImGui::GetIO();
             if(!io.WantCaptureMouse)
             {
-                if(e.button == MouseEvent::Button::Middle)
-                {
-                    trackball.start(mousex, mousey, Trackball2::Zoom);
-                }
-                else
-                {
-                    trackball.start(mousex, mousey, Trackball2::Rotate);
-                }
+                auto const mode = (e.button == MouseEvent::Button::Middle) ? Trackball2::Zoom 
+                    : (e.button == MouseEvent::Button::Right) ? Trackball2::Translate 
+                    : Trackball2::Rotate;
+
+                trackball.start(mousex, mousey, mode);
             }
         }
         else if (e.type == MouseEvent::Type::ButtonRelease)
@@ -188,6 +185,7 @@ int main(int argc, char* argv[])
         bool culling = false;
         bool shading = false;
         float t = 0.f;
+        bool shiftViewport = true;
     } globals;
 
 
@@ -414,11 +412,17 @@ int main(int argc, char* argv[])
             ImGui::Checkbox("Shading", &globals.shading);   scene.getUniforms().shading = globals.shading;
             ImGui::Checkbox("Blending", &globals.blending);
             ImGui::Checkbox("Culling", &globals.culling);
-            if (ImGui::Button("Reset Camera"))
+            ImGui::Checkbox("ShiftViewport", &globals.shiftViewport);
+            
+            if (ImGui::Button("Reset camera"))
             {
                 trackball.resetRotation();
+                trackball.resetTranslation();
                 trackball.setZoom(3.f);
             }
+            ImGui::SameLine();
+            if (ImGui::Button("Side")) { trackball.setRotationAngleDegreeAxis(120, 1,1,1); }
+
             if (ImGui::Button("Save .obj"))
             {
                 if (auto const* mb = scene.getMeshBuffer())
@@ -432,7 +436,10 @@ int main(int argc, char* argv[])
                 }
             }
             if (ImGui::Button("Fullscreen"))
+            {
                 app.setFullscreen(!app.isFullscreen());
+            }
+
             ImGui::ColorEdit3("Foreground", scene.getUniforms().color);
             ImGui::ColorEdit3("Background", globals.clear_color);
             ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -449,10 +456,13 @@ int main(int argc, char* argv[])
 
             trackball.setViewSize(width, height);
 
-            glViewport(0, 0, width, height);
+            int shiftViewport = globals.shiftViewport ? 300 : 0;
+
             glClearColor(globals.clear_color[0], globals.clear_color[1], globals.clear_color[2], globals.clear_color[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             GL::checkGLError("main - glClear()");
+
+            glViewport(shiftViewport, 0, width - shiftViewport, height);
 
             glEnable(GL_DEPTH_TEST);
 
@@ -470,12 +480,13 @@ int main(int argc, char* argv[])
             glPolygonMode(GL_FRONT_AND_BACK, globals.wireframe ? GL_LINE : GL_FILL);
             GL::checkGLError("main - glPolygonMode()");
 
-            float const aspect = width / (float)height;
-            float const zoom = trackball.getZoom(); //globals.zoom;
-            scene.render(
-                glm::translate(glm::mat4(1.0), glm::vec3(0.f, 0.f, -zoom))
-                * glm::mat4(trackball.getRotationMatrix()),
-                glm::perspective(glm::radians(45.f), aspect, .1f, 100.f));
+            float const aspect = (width - shiftViewport) / (float)height;
+
+            float const zoom = trackball.getZoom();
+            auto const modelview = trackball.getModelviewMatrix();
+                //glm::translate(glm::mat4(1.0), glm::vec3(0.f, 0.f, -zoom)) * glm::mat4(trackball.getRotationMatrix());
+            auto const perspective = glm::perspective(glm::radians(45.f), aspect, .1f, 100.f);
+            scene.render(modelview, perspective);
         }
 
         app.endFrame();

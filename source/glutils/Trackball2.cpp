@@ -2,6 +2,8 @@
 #include <glm/gtc/matrix_transform.hpp>  // glm::translate, ::rotate, ...
 #include <cmath>
 
+constexpr bool TranslateRotated = false;
+
 glm::vec3 Trackball2::projectToSphere( float x, float y  )
 {
     static const float sqrt2 = sqrt(2.f);
@@ -85,18 +87,27 @@ void Trackball2::update( float ax, float ay, float bx, float by, int mode )
     else
     if( mode==Translate )
     {
-        // Get current rotation matrix
-        glm::mat3 R = getRotationMatrix();
-        
-        // Translate along directions Rx and Ry
-        R = glm::transpose(R);
-        m_trans += R[0] * (bx - ax) * ( m_speed + m_zoom ) / 100.f;
-        m_trans += R[1] * (by - ay) * ( m_speed + m_zoom ) / 100.f;
+        if constexpr (TranslateRotated)
+        {
+            // Get current rotation matrix
+            glm::mat3 R = getRotationMatrix();
+            
+            // Translate along directions Rx and Ry
+            R = glm::transpose(R);
+            m_trans += R[0] * (bx - ax) * ( 10.f * m_speed + m_zoom ) / 100.f;
+            m_trans += R[1] * (by - ay) * ( 10.f * m_speed + m_zoom ) / 100.f;
+        }
+        else
+        {
+            // Translate along canonical x and y direction
+            m_trans += glm::vec3(1,0,0) * (bx - ax) * ( 10.f * m_speed + m_zoom ) / 100.f;
+            m_trans += glm::vec3(0,1,0) * (by - ay) * ( 10.f * m_speed + m_zoom ) / 100.f;
+        }
     }
     else
     if( mode==Zoom )
     {
-        m_zoom += (by - ay) * ( m_speed + m_zoom ) / 50.f;
+        m_zoom += (by - ay) * ( 10.f * m_speed + m_zoom ) / 50.f;
     }
 }
 
@@ -106,7 +117,14 @@ glm::mat4 Trackball2::getModelviewMatrix() const
       Zoom  = glm::translate( glm::mat4(1.0), glm::vec3(0.f,0.f,-m_zoom) ),
       Rot   = glm::mat4( getRotationMatrix() ),
       Trans = glm::translate( glm::mat4(1.0), m_trans );
-    return Zoom * Rot * Trans;
+    if constexpr (TranslateRotated)
+    {
+        return Zoom * Rot * Trans;
+    }
+    else
+    {
+        return Zoom * Trans * Rot;
+    }
 }
 
 glm::mat3 Trackball2::getRotationMatrix() const
