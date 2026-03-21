@@ -14,7 +14,11 @@ class SimpleGeometry
     SimpleGeometry() = default;
     virtual ~SimpleGeometry() = default;
 
-    virtual void create(int param) {}
+    // Re-create mesh geometry with different number of vertices
+    virtual void create(int param=-1) {}
+
+    // Update vertex positions based on (changed) parameters
+    virtual void update() {};
 
     virtual void setLevels(int levels) {}
     virtual int getLevels() const { return 0; }

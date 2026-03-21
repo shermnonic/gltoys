@@ -67,13 +67,11 @@ void SphericalHarmonics::update()
         }
     }
 
-    // TODO: Update normals!
+    recomputeVertexNormals();
 }
 
 void SphericalHarmonics::create(int level)
 {
-    clear();
-
     // Sample vertices on sphere via an subdivided icosahedron
     Icosahedron::create(level);
 

@@ -41,6 +41,8 @@ void Icosahedron::add_face_subdivision(Face f, int levels)
 
 void Icosahedron::create(int levels)
 {
+    clear();
+
     if (levels < 0)
         levels = m_levels;
     else
@@ -79,4 +81,7 @@ void Icosahedron::create(int levels)
     {
         add_face_subdivision(Face(tindices[i]), levels);
     }
+
+    
+    unifyVertices();
 }

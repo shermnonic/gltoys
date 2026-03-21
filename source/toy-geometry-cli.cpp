@@ -3,6 +3,7 @@
 
 int main(int argc, char* argv[])
 {
+/*
     std::cout << "Write icosahedron...\n";
     
     Icosahedron icosahedron(1);
@@ -11,7 +12,7 @@ int main(int argc, char* argv[])
     icosahedron.unifyVertices();
     icosahedron.recomputeVertexNormals();
     icosahedron.writeOBJ("icosahedron-recomputed-normals.obj");
-
+*/
 /*
     std::cout << "Write penrose...\n";
     Penrose penrose;
@@ -27,11 +28,12 @@ int main(int argc, char* argv[])
     SphericalHarmonics sh;
     sh.create();
     sh.writeOBJ("sh.obj");
-
+*/
     std::cout << "Write SphericalHarmonicsFunction...\n";
     SphericalHarmonicsFunction shf;
-    shf.create();
+    shf.randomizeCoefficients();    
+    shf.update();
     shf.writeOBJ("shf.obj");
-*/
+
     return 0;
 }

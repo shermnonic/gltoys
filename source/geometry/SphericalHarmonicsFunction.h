@@ -4,10 +4,10 @@
 class SphericalHarmonicsFunction : public Icosahedron
 {
   public:
-    SphericalHarmonicsFunction(int order = 10) : m_order(order) { create(); }
+    SphericalHarmonicsFunction(int order = 10);
 
-    void create(int level = -1);
-    void update();
+    void create(int level = -1) override;
+    void update() override;
 
     void resetCoefficients();
     void randomizeCoefficients();
@@ -30,5 +30,5 @@ class SphericalHarmonicsFunction : public Icosahedron
     std::vector<float> m_radius;         // Scaling factor
     std::vector<float> m_coeffs;         // SH coefficients
     int m_order;                         // number of SH bands
-    std::vector<float> m_vcache;         // vertex cache for icosahedron
+    std::vector<float> nonDisplacedVertices;         // vertex cache for icosahedron
 };

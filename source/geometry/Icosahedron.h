@@ -8,7 +8,7 @@ class Icosahedron : public SimpleGeometry
   public:
     static constexpr double GoldenRatio = 1.6180339887498948482045;
 
-    Icosahedron(int levels = 4) : SimpleGeometry() 
+    Icosahedron(int levels = 3) : SimpleGeometry() 
     {
         create(levels);
     };
@@ -31,7 +31,7 @@ class Icosahedron : public SimpleGeometry
 
     /// Create an Icosahedron model where each face is subdivided level times
     /// In the limit the subdivision surface is a sphere.
-    void create(int level = -1);
+    void create(int level = -1) override;
 
   protected:
     /// Recursive face subdivision routine
