@@ -142,8 +142,12 @@ uniform vec4 uniform_color;
 void main() 
 {
 #ifdef HAS_ATTRIBUTE_NORMAL
-    //float diffuse = shading ? abs(dot(normalize(normal),normalize(position-vec3(0,0,-5)))) : 1.0;
+  #define DUAL_SIDED_SHADING
+  #ifdef DUAL_SIDED_SHADING
+    float diffuse = shading ? abs(dot(normalize(normal),normalize(position-vec3(0,0,-5)))) : 1.0;
+  #else
     float diffuse = shading ? max(0.0,dot(normalize(normal),normalize(position-vec3(0,0,-5)))) : 1.0;
+  #endif
 #else
     float diffuse = 1.0;
 #endif

@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <optional>
 #include <ranges>
 #include <span>
 
@@ -114,14 +115,23 @@ int main(int argc, char* argv[])
 
     // -- Scenes
 
-    int const DefaultSubdivisionLevels = 4;
+    int const DefaultSubdivisionLevels = 3;
+
+    // Initialize specific scenes
+    auto randomHarmonic = std::make_shared<SphericalHarmonicsFunction>();
+    randomHarmonic->randomizeCoefficients();
+    randomHarmonic->update();
+
+    auto tensorGlyph = std::make_shared<Superquadric>(Superquadric::Mode::TensorGlyph);
+    tensorGlyph->setParameters(Superquadric::TensorParameters{ 0.0, 0.25, 1.5 });
+    tensorGlyph->update();
 
     std::vector const scenes = { 
         std::make_shared<GeometryScene>("Icosahedron", std::make_shared<Icosahedron>()),
         std::make_shared<GeometryScene>("Superquadric", std::make_shared<Superquadric>()),
-        std::make_shared<GeometryScene>("Tensor glyph", std::make_shared<Superquadric>(Superquadric::Mode::TensorGlyph)),
+        std::make_shared<GeometryScene>("Tensor glyph", tensorGlyph),
         std::make_shared<GeometryScene>("Spherical Harmonics", std::make_shared<SphericalHarmonics>()),
-        std::make_shared<GeometryScene>("Random Harmonic", std::make_shared<SphericalHarmonicsFunction>()),
+        std::make_shared<GeometryScene>("Random Harmonic", randomHarmonic),
         std::make_shared<GeometryScene>("Penrose Tiling", std::make_shared<Penrose>())
     };
 
@@ -180,9 +190,46 @@ int main(int argc, char* argv[])
         float t = 0.f;
     } globals;
 
+
+    bool sceneNeedsUpdate = false;
+    std::optional<int> newLevel;
+    bool icosahedronGlitchParametersChanged = false;
+
     while (app.running())
     {
         GeometryScene& scene = *scenes[globals.sceneIndex % scenes.size()].get();
+        
+        if(sceneNeedsUpdate)
+        {
+            // Some geometries need an additional update() call even after create(), e.g. to update displacement mesh
+            bool const additionalUpdateCallNeeded =                 
+                dynamic_cast<SphericalHarmonics*>(scene.getSimpleGeometry()) 
+                ||  dynamic_cast<SphericalHarmonicsFunction*>(scene.getSimpleGeometry());
+            
+            // For most geometries a create() call makes another update() call obsolete
+            bool const doUpdateCallSufficient = !newLevel.has_value() || additionalUpdateCallNeeded; 
+
+            auto& geometry = *scene.getSimpleGeometry();
+            if(newLevel.has_value())
+            {
+                geometry.create(newLevel.value() == 0 ? DefaultSubdivisionLevels : std::max(geometry.getLevels() + newLevel.value(), 0));
+            }
+            else if(icosahedronGlitchParametersChanged)
+            {
+                geometry.create();
+            }
+
+            if(doUpdateCallSufficient)
+            {
+                geometry.update();
+            }
+
+            scene.update();
+
+            sceneNeedsUpdate = false;
+            icosahedronGlitchParametersChanged = false;
+            newLevel.reset();
+        }
 
         app.beginFrame();
         GL::clearGLError("main - begin of main loop");
@@ -214,13 +261,13 @@ int main(int argc, char* argv[])
                 globals.sceneIndex = selected;
             }
 
-      
             auto fuzzy_equal = [](float a, double b)
             {
                 return std::fabs(a - gsl::narrow_cast<float>(b)) < 1e-6;
             };
 
             ImGui::SeparatorText("Scene specific parameters");
+
             if(auto icosahedron = dynamic_cast<Icosahedron*>(scene.getSimpleGeometry()))
             {
                 float x = globals.animate ? globals.t : icosahedron->getPlatonicConstantsX();
@@ -238,10 +285,9 @@ int main(int argc, char* argv[])
                 || !fuzzy_equal(x, icosahedron->getPlatonicConstantsX()) 
                 || !fuzzy_equal(z, icosahedron->getPlatonicConstantsZ()) )
                 {
-                    icosahedron->clear();
                     icosahedron->setPlatonicConstants(x, z);
-                    icosahedron->create();
-                    scene.update();
+                    icosahedronGlitchParametersChanged = true;
+                    sceneNeedsUpdate = true;
                 }
             }
             
@@ -263,10 +309,8 @@ int main(int argc, char* argv[])
                     if(!fuzzy_equal(alpha, superquadric->getAlpha()) 
                     || !fuzzy_equal(beta, superquadric->getBeta()))
                     {
-                        superquadric->clear();
                         superquadric->setQuadric(alpha, beta);
-                        superquadric->create();
-                        scene.update();
+                        sceneNeedsUpdate = true;
                     }
                 }
                 else if(superquadric->getMode() == Superquadric::Mode::TensorGlyph)
@@ -290,10 +334,8 @@ int main(int argc, char* argv[])
                     || !fuzzy_equal(cl, superquadric->getTensorParameters().linearity)
                     || !fuzzy_equal(gamma, superquadric->getTensorParameters().sharpness))
                     {
-                        superquadric->clear();
                         superquadric->setParameters({.planarity = cp, .linearity = cl, .sharpness = gamma});
-                        superquadric->create();
-                        scene.update();
+                        sceneNeedsUpdate = true;
                     }
                 }
             }
@@ -313,10 +355,8 @@ int main(int argc, char* argv[])
 
                 if(L != sphericalHarmonics->getL() || M != sphericalHarmonics->getM())
                 {
-                    sphericalHarmonics->clear();
                     sphericalHarmonics->setLM(L, M);
-                    sphericalHarmonics->create();
-                    scene.update();
+                    sceneNeedsUpdate = true;
                 }
             }
 
@@ -343,18 +383,15 @@ int main(int argc, char* argv[])
 
                 if(dirty)
                 {
-                    sphericalHarmonicsFunction->update();
-                    scene.update();
+                    sceneNeedsUpdate = true; // but no create() call needed!
                 }
             }
 
             auto changeLevel = [&](int levelChange)
             {
-                auto& geometry = *scene.getSimpleGeometry();
-                geometry.clear();
-                geometry.create(levelChange == 0 ? DefaultSubdivisionLevels : std::max(geometry.getLevels() + levelChange, 0)); 
-                scene.update();
-            };
+                newLevel = levelChange;
+                sceneNeedsUpdate = true;
+            };            
             
             ImGui::SeparatorText("Subdivision levels (if applicable)");
             ImGui::Text(std::to_string(scene.getSimpleGeometry()->getLevels()).c_str());

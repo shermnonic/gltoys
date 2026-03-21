@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Vector.h" // vec3
+#include <map>
+#include <set>
 #include <vector>
 
 /// Indexed face set in linear tightly packed vertex/index buffers
@@ -10,9 +12,13 @@ class SimpleGeometry
 {
   public:
     SimpleGeometry() = default;
-    virtual ~SimpleGeometry() {}
+    virtual ~SimpleGeometry() = default;
 
-    virtual void create(int param) {}
+    // Re-create mesh geometry with different number of vertices
+    virtual void create(int param=-1) {}
+
+    // Update vertex positions based on (changed) parameters
+    virtual void update() {};
 
     virtual void setLevels(int levels) {}
     virtual int getLevels() const { return 0; }
@@ -37,12 +43,19 @@ class SimpleGeometry
     bool writeOBJ(const char *filename) const;
 
     /// Return one-ring vertex indices for vertex i (expensive!)
-    void get_one_ring(int i, std::vector<int> &N) const;
+    //void get_one_ring(int i, std::vector<int> &N) const;
 
     /// Create mesh dual, written as new geometry to res
-    void make_dual(SimpleGeometry &res) const;
+    //void make_dual(SimpleGeometry &res) const;
+
+    void recomputeVertexNormals();
+
+    void unifyVertices();
 
   protected:
+    void computeFaceNormalsAndAdjacency();
+
+
     /// Reserve memory for vertices
     void reserve_vertices(int n);
     /// Reserve memory for face indices
@@ -79,4 +92,8 @@ class SimpleGeometry
     std::vector<float> m_vdata;
     std::vector<float> m_ndata; // vertex normals
     std::vector<unsigned> m_fdata;
+
+    std::vector<float> faceNormals;
+
+    std::map<int, std::set<int>> facesAdjacentToVertex;
 };

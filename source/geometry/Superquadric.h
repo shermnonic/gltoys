@@ -29,7 +29,9 @@ public:
         create();
     };
 
-    void create(int unused = -1);
+    void create(int unused = -1) override;
+
+    void update() override { create(); }
 
     Mode getMode() const { return mode; }
 

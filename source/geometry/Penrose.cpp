@@ -110,6 +110,8 @@ void Penrose::add_face_subdivision(SimpleGeometry::Face f, int type, int levels)
 
 void Penrose::create(int levels)
 {
+    clear();
+
     if (levels < 0)
         levels = m_levels;
     else
