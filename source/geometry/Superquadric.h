@@ -29,9 +29,13 @@ public:
         create();
     };
 
-    void create(int unused = -1) override;
+    void create(int resolutionFactor = -1) override;
 
     void update() override { create(); }
+
+    void setLevels(int levels) override { resolutionFactor = levels; }
+    int getLevels() const override { return resolutionFactor; }
+
 
     Mode getMode() const { return mode; }
 
@@ -57,6 +61,7 @@ public:
     }
 
   private:
+    int resolutionFactor = 1;
     Mode mode = Mode::Quadric;
     QuadricParameters quadricParameters;
     TensorParameters tensorParameters;

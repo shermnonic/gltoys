@@ -399,7 +399,7 @@ int main(int argc, char* argv[])
                 sceneNeedsUpdate = true;
             };            
             
-            ImGui::SeparatorText("Subdivision levels (if applicable)");
+            ImGui::SeparatorText("Mesh resolution");
             ImGui::Text(std::to_string(scene.getSimpleGeometry()->getLevels()).c_str());
             ImGui::SameLine();
             if(ImGui::Button("Reset")) changeLevel(0);

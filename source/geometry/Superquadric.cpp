@@ -47,11 +47,16 @@ namespace
 
 }
 
-void Superquadric::create(int)
+void Superquadric::create(int newResolutionFactor)
 {
+    if(newResolutionFactor > 0)
+    {
+        resolutionFactor = newResolutionFactor;
+    }
+
     clear();
 
-    int res = 32;
+    int const res = 18 * std::max(1, resolutionFactor);
 
     double theta_step = (2. * M_PI) / (double)res;
     double phi_step = M_PI / (double)res;
