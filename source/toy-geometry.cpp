@@ -237,8 +237,15 @@ int main(int argc, char* argv[])
             ImGui::Begin("geometry2");
 
             {
+              #if 0
                 auto const sceneNames = std::views::transform(scenes, [](auto scene) { return scene->getName(); }) | std::ranges::to<std::vector>();
-              
+              #else
+                std::vector<std::string> sceneNames;
+                for (auto scene : scenes)
+                {
+                    sceneNames.push_back(scene->getName());                
+                }
+              #endif
                 std::size_t selected = globals.sceneIndex;
                 if (ImGui::BeginCombo("Scene", sceneNames[selected].c_str()))
                 {

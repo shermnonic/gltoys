@@ -1,5 +1,5 @@
 {
-    "version" : 8,
+    "version" : 4,
     "configurePresets": [
         {
             "name": "base",
@@ -9,6 +9,13 @@
         {
             "name": "default",
             "inherits": "base"
+        },
+        {
+            "name": "ninja-plain",
+            "generator": "Ninja",
+            "inherits": [
+                "default"
+            ]            
         },
         {
             "name": "ninja",
