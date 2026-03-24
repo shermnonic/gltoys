@@ -13,8 +13,20 @@ Windows binaries can be found in [releases](https://github.com/shermnonic/gltoys
 
 ## Build
 
-Build via [cmake](https://cmake.org/).
+Requires:
+- [cmake](https://cmake.org/) for build system
+- [vcpkg](https://vcpkg.io/) for dependency management
+  - Set `VCPKG_ROOT` environment variable to the vcpkg directory
 
-Dependencies are configured via a [vcpkg](https://vcpkg.io/) manifest.
+Build on Linux via:
+```bash
+cmake --preset default
+cmake --build build/default --config Release
+```
 
-Tested on Windows 10 and Linux.
+Launch the toys from the build tree:
+```bash
+./build/default/source/toy-geometry
+./build/default/source/toy-glitchsphere
+./build/default/source/toy-mnoise
+```
