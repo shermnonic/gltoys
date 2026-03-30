@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdio> // fprintf, fopen, FILE
+#include <set>
 #include <stdexcept>
 
 SimpleGeometry::Face::Face() { vi[0] = vi[1] = vi[2] = 0; }
@@ -127,13 +128,27 @@ bool SimpleGeometry::writeOBJ(const char *filename) const
     }
 
     fclose(f);
-    return true;
+    return true;   
 }
 
-void SimpleGeometry::computeFaceNormalsAndAdjacency()
+void SimpleGeometry::updateFacesAdjacency()
 {
-    faceNormals.clear();
     facesAdjacentToVertex.clear();
+    for(int fi=0; fi < num_faces(); ++fi)
+    {
+        Face const face = get_face(fi);
+        facesAdjacentToVertex[face.vi[0]].insert(fi);
+        facesAdjacentToVertex[face.vi[1]].insert(fi);
+        facesAdjacentToVertex[face.vi[2]].insert(fi);
+    }
+}
+
+void SimpleGeometry::computeFaceNormals()
+{
+    if(facesAdjacentToVertex.size() != num_vertices())
+    {
+        updateFacesAdjacency();
+    }
 
     faceNormals.resize(num_faces()*3);
 
@@ -152,10 +167,7 @@ void SimpleGeometry::computeFaceNormalsAndAdjacency()
 
     for(int fi=0; fi < num_faces(); ++fi)
     {
-        Face face = get_face(fi);
-        facesAdjacentToVertex[face.vi[0]].insert(fi);
-        facesAdjacentToVertex[face.vi[1]].insert(fi);
-        facesAdjacentToVertex[face.vi[2]].insert(fi);
+        Face const face = get_face(fi);
 
         // Assume consistent orientation of face indices
         vec3 v0 = get_vertex(face.vi[0]);
@@ -167,7 +179,7 @@ void SimpleGeometry::computeFaceNormalsAndAdjacency()
 
 void SimpleGeometry::recomputeVertexNormals()
 {
-    computeFaceNormalsAndAdjacency();
+    computeFaceNormals();
 
     auto getFaceNormal = [this](int fi) -> vec3
     {
@@ -310,4 +322,131 @@ void SimpleGeometry::unifyVertices()
     {
         std::cout << "No vertices to unify\n";
     }    
+}
+
+std::vector<int> SimpleGeometry::computeOneRing(int i) const
+{
+    assert(facesAdjacentToVertex.size() == num_vertices());
+
+    if(!facesAdjacentToVertex.contains(i))
+    {
+        return {};
+    }
+
+    // Get unique vertices of faces adjacent to center vertex v_i
+    std::set<int> uniqueRingVertices;
+    for (auto const adjacentFaceIndex : facesAdjacentToVertex.at(i))
+    {
+        Face const f = get_face(adjacentFaceIndex);
+        
+        assert(f.vi[0] == i || f.vi[1] == i || f.vi[2] == i);
+        
+        // Avoid checking for index i, just add it here multiple times and remove later
+        uniqueRingVertices.insert(f.vi[0]);
+        uniqueRingVertices.insert(f.vi[1]);
+        uniqueRingVertices.insert(f.vi[2]);
+    }
+    uniqueRingVertices.erase(i); // Remove index i again
+
+    // Order vertices according to angles in normal plane of vi
+    std::vector<int> ringVertices( uniqueRingVertices.begin(), uniqueRingVertices.end() );
+
+    vec3 const vi = get_vertex(i);
+    vec3 const ni = get_normal(i);
+
+    // Project into normal plane at vertex i
+    auto project = [&vi, &ni](vec3 const& vj)
+    {
+        vec3 ej = vj - vi;
+        ej -= ni * ej.scalarprod(ni);
+        return ej.normalized();
+    };
+    
+    // Measure angle against first projected edge
+    vec3 const e0n = project(get_vertex(ringVertices[0]));
+    vec3 const e0n_cross_ni = e0n.cross(ni);
+
+    // @todo: With C++23 use zip view to simplify and make IndexAngle obsolete
+    struct IndexAngle
+    {
+        int index;
+        float angle;
+    };
+
+    std::vector<IndexAngle> vangle(ringVertices.size());
+    vangle[0] = { ringVertices[0], 0.f };
+    for (int k = 1; k < ringVertices.size(); ++k)
+    {
+        vec3 const ejn = project(get_vertex(ringVertices[k]));
+
+        float angle = std::acos(ejn.scalarprod(e0n));
+        float const sign = std::signbit(e0n_cross_ni.scalarprod(ejn));
+        if (sign < 0.f)
+        {
+            angle = (float)M_PI - angle;
+        }
+
+        vangle[k] = { ringVertices[k], angle };
+    }
+
+    std::ranges::sort(vangle, [](auto const& a, auto const& b) { return a.angle < b.angle; });
+
+    for(auto k=0; k < ringVertices.size(); ++k)
+    {
+        ringVertices[k] = vangle[k].index;
+    }
+
+    return ringVertices;
+}
+
+void SimpleGeometry::makeDual()
+{
+    if(facesAdjacentToVertex.size() != num_vertices())
+    {
+        updateFacesAdjacency();
+    }
+
+    SimpleGeometry result;
+
+    int nverts = num_vertices();
+    for (auto i0 = 0; i0 < nverts; ++i0)
+    {
+        // Compute dual to one-ring
+        auto const N = computeOneRing(i0);
+
+        vec3 const v0 = get_vertex(i0);
+        vec3 const n0 = get_normal(i0);
+
+        // New vertices
+        std::vector<int> newIndices;
+        newIndices.push_back(result.add_vertex_and_normal(v0, n0));
+
+        constexpr bool SanityCheckJustCopyOneRing = true;
+
+        if constexpr (SanityCheckJustCopyOneRing)
+        {
+            for (size_t i = 0; i < N.size(); ++i)
+                newIndices.push_back(
+                    result.add_vertex_and_normal(get_vertex(N[i]), n0));
+        }
+        else
+        {
+            for (size_t i = 0; i < N.size() - 1; ++i)
+            {
+                vec3 const vi = get_vertex(N[i]);
+                vec3 const vj = get_vertex(N[i + 1]);
+                newIndices.push_back(
+                    result.add_vertex_and_normal((v0 + vi + vj) / 3.f, n0));
+            }
+        }
+
+        // New faces
+        for (size_t i = 1; i < newIndices.size() - 1; ++i)
+            result.add_face(
+                Face(newIndices[0], newIndices[i], newIndices[i + 1]));
+    }
+
+    result.recomputeVertexNormals();
+
+    *this = result;
 }

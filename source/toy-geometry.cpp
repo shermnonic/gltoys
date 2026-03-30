@@ -192,6 +192,7 @@ int main(int argc, char* argv[])
     bool sceneNeedsUpdate = false;
     std::optional<int> newLevel;
     bool icosahedronGlitchParametersChanged = false;
+    bool dualMeshRequested = false;
 
     while (app.running())
     {
@@ -217,6 +218,11 @@ int main(int argc, char* argv[])
                 geometry.create();
             }
 
+            if(dualMeshRequested)
+            {
+                geometry.makeDual();
+            }
+
             if(doUpdateCallSufficient)
             {
                 geometry.update();
@@ -226,6 +232,7 @@ int main(int argc, char* argv[])
 
             sceneNeedsUpdate = false;
             icosahedronGlitchParametersChanged = false;
+            dualMeshRequested = false;
             newLevel.reset();
         }
 
@@ -412,6 +419,13 @@ int main(int argc, char* argv[])
             if(ImGui::Button("-")) changeLevel(-1);
             ImGui::SameLine();
             if(ImGui::Button("+")) changeLevel(+1);
+
+            ImGui::SeparatorText("Dual mesh");
+            if(ImGui::Button("Make dual"))
+            {
+                dualMeshRequested = true;
+                sceneNeedsUpdate = true;
+            }
 
             ImGui::SeparatorText("Common options");            
             ImGui::Checkbox("Animate", &globals.animate);

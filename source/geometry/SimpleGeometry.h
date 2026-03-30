@@ -42,19 +42,20 @@ class SimpleGeometry
 
     bool writeOBJ(const char *filename) const;
 
-    /// Return one-ring vertex indices for vertex i (expensive!)
-    //void get_one_ring(int i, std::vector<int> &N) const;
-
-    /// Create mesh dual, written as new geometry to res
-    //void make_dual(SimpleGeometry &res) const;
-
     void recomputeVertexNormals();
 
     void unifyVertices();
 
-  protected:
-    void computeFaceNormalsAndAdjacency();
+    /// Create mesh dual
+    void makeDual();
 
+  protected:
+    void updateFacesAdjacency();
+
+    void computeFaceNormals();
+
+    /// Return one-ring vertex indices for vertex i
+    std::vector<int> computeOneRing(int i) const;
 
     /// Reserve memory for vertices
     void reserve_vertices(int n);
