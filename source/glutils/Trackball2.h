@@ -4,6 +4,10 @@
 #include <glm/glm.hpp> // glm::vec3, glm::vec4, glm::ivec4, glm::mat4
 #include <glm/gtc/quaternion.hpp> // glm::fquat
 
+#ifndef M_PI
+#define M_PI 3.1415926535897932384626433832795
+#endif
+
 /// Trackball camera control, uses glm template library.
 /// Call start(), update() and stop() during interaction and retrieve camera
 /// matrix via getCameraMatrix().
