@@ -414,6 +414,11 @@ void SimpleGeometry::makeDual()
         // Compute dual to one-ring
         auto const N = computeOneRing(i0);
 
+        if(N.size() < 5)
+        {
+            continue;
+        }
+
         vec3 const v0 = get_vertex(i0);
         vec3 const n0 = get_normal(i0);
 
@@ -421,7 +426,7 @@ void SimpleGeometry::makeDual()
         std::vector<int> newIndices;
         newIndices.push_back(result.add_vertex_and_normal(v0, n0));
 
-        constexpr bool SanityCheckJustCopyOneRing = true;
+        constexpr bool SanityCheckJustCopyOneRing = false;
 
         if constexpr (SanityCheckJustCopyOneRing)
         {
@@ -442,11 +447,14 @@ void SimpleGeometry::makeDual()
 
         // New faces
         for (size_t i = 1; i < newIndices.size() - 1; ++i)
+        {
             result.add_face(
                 Face(newIndices[0], newIndices[i], newIndices[i + 1]));
-    }
+        }
 
-    result.recomputeVertexNormals();
+        result.add_face(
+            Face(newIndices[0], newIndices[newIndices.size()-1], newIndices[1]));
+    }
 
     *this = result;
 }
