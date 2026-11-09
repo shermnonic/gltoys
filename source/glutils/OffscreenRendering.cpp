@@ -45,15 +45,7 @@ void OffscreenRendering::renderBegin()
 
     if(initialized)
     {
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-    
-        if(renderToTexture.bind(target.name()))
-        {
-            int viewport[4];
-            glGetIntegerv(GL_VIEWPORT, viewport);
-            glViewport(0,0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
-        }
-        else
+        if(!renderToTexture.bind(target.name()))
         {
             std::cerr << "OffscreenRendering::renderBegin() - Could not bind render texture" << std::endl;
         }
@@ -64,9 +56,10 @@ void OffscreenRendering::renderEnd()
 {
     if(initialized)
     {
-        downloadImageData();
+        glFlush();
+
+        downloadImageData(GL_BGR);
         renderToTexture.unbind();
-        glPopAttrib();
     }
 }
 

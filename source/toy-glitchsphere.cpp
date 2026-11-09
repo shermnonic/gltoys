@@ -1,6 +1,7 @@
 // toy-glitchsphere
 #include <imgui.h>
 #include <GLFWApp.h>
+#include "renderScreenshot.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -119,6 +120,8 @@ int main(int argc, char* argv[])
 
     const float tmax = 2 * 3.1415f;
 
+    bool screenshotTriggered = false;
+
     while (app.running())
     {
         app.beginFrame();
@@ -156,6 +159,8 @@ int main(int argc, char* argv[])
                     }
                 }
             }
+            if(ImGui::Button("Save .tga"))
+                screenshotTriggered = true;
             if (ImGui::Button("Fullscreen"))
                 app.setFullscreen(!app.isFullscreen());
             ImGui::ColorEdit3("Foreground", scene.uniforms().color);
@@ -170,10 +175,8 @@ int main(int argc, char* argv[])
         scene.update(params);
 
         // Frame
+        auto renderFrame = [&](int width, int height)
         {
-            int width = app.width();
-            int height = app.height();
-
             trackball.setViewSize(width, height);
 
             glViewport(0, 0, width, height);
@@ -202,10 +205,18 @@ int main(int argc, char* argv[])
                 glm::translate(glm::mat4(1.0), glm::vec3(0.f, 0.f, -globals.zoom))
                 * glm::mat4(trackball.getRotationMatrix()),
                 glm::perspective(glm::radians(45.f), aspect, .1f, 100.f));
-        }
+        };
+
+        renderFrame(app.width(), app.height());
 
         app.endFrame();
 
+
+        if(screenshotTriggered)
+        {
+            screenshotTriggered = false;
+            renderScreenshot(renderFrame, app.width(), app.height(), "toy-glitchsphere");
+        }
 
         if (globals.animate)
         {

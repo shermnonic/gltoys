@@ -1,5 +1,6 @@
 #include "MarchingCubes.h"
 #include <cmath> // sqrt()
+#include <cstdlib> // size_t
 
 namespace MarchingCubes {
 
@@ -371,8 +372,8 @@ void triangulate( float x, float y, float z,
     int vi[12]; // map canonical index [0:12] to relative index [0:num_points]
     for( int i=0; i < 12; i++ ) if( edgeflags & (1<<i) )
     {
-        const size_t v0 = cube_edges[i][0];
-        const size_t v1 = cube_edges[i][1];
+        const std::size_t v0 = cube_edges[i][0];
+        const std::size_t v1 = cube_edges[i][1];
         
         float ofs = get_offset( f[v0], f[v1], isovalue );
 

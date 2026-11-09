@@ -1,6 +1,7 @@
 // toy-geometry (based on toy-glitchsphere)
 #include <imgui.h>
 #include <GLFWApp.h>
+#include "renderScreenshot.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -10,7 +11,6 @@
 #include <glutils/MeshShader.h>
 #include <glutils/MeshBufferIO.h> // writeOBJ()
 #include <glutils/Trackball2.h>
-
 #include <geometry/Geometry2.h>
 
 #include <gsl/gsl>
@@ -193,6 +193,7 @@ int main(int argc, char* argv[])
     std::optional<int> newLevel;
     bool icosahedronGlitchParametersChanged = false;
     bool dualMeshRequested = false;
+    bool screenshotTriggered = false;
 
     while (app.running())
     {
@@ -250,7 +251,7 @@ int main(int argc, char* argv[])
                 std::vector<std::string> sceneNames;
                 for (auto scene : scenes)
                 {
-                    sceneNames.push_back(scene->getName());                
+                    sceneNames.push_back(scene->getName());
                 }
               #endif
                 std::size_t selected = globals.sceneIndex;
@@ -427,7 +428,7 @@ int main(int argc, char* argv[])
                 sceneNeedsUpdate = true;
             }
 
-            ImGui::SeparatorText("Common options");            
+            ImGui::SeparatorText("Common options");
             ImGui::Checkbox("Animate", &globals.animate);
             ImGui::Checkbox("Wireframe", &globals.wireframe);
             ImGui::Checkbox("Shading", &globals.shading);   scene.getUniforms().shading = globals.shading;
@@ -456,6 +457,10 @@ int main(int argc, char* argv[])
                     }
                 }
             }
+            if (ImGui::Button("Save .tga"))
+            {
+                screenshotTriggered = true;
+            }
             if (ImGui::Button("Fullscreen"))
             {
                 app.setFullscreen(!app.isFullscreen());
@@ -471,19 +476,20 @@ int main(int argc, char* argv[])
 
 
         // Frame
+        int renderShiftViewport = globals.shiftViewport ? 300 : 0;
+
+        auto renderFrame = [&](int width, int height)
         {
-            int width = app.width();
-            int height = app.height();
+            trackball.setViewSize(app.width(), app.height());
 
-            trackball.setViewSize(width, height);
+            int shiftViewport = renderShiftViewport;
 
-            int shiftViewport = globals.shiftViewport ? 300 : 0;
+            glViewport(shiftViewport, 0, width - shiftViewport, height);
+            GL::checkGLError("main - glViewport()");
 
             glClearColor(globals.clear_color[0], globals.clear_color[1], globals.clear_color[2], globals.clear_color[3]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             GL::checkGLError("main - glClear()");
-
-            glViewport(shiftViewport, 0, width - shiftViewport, height);
 
             glEnable(GL_DEPTH_TEST);
 
@@ -508,10 +514,19 @@ int main(int argc, char* argv[])
                 //glm::translate(glm::mat4(1.0), glm::vec3(0.f, 0.f, -zoom)) * glm::mat4(trackball.getRotationMatrix());
             auto const perspective = glm::perspective(glm::radians(45.f), aspect, .1f, 100.f);
             scene.render(modelview, perspective);
-        }
+        };
+
+        renderFrame(app.width(), app.height());
 
         app.endFrame();
 
+
+        if(screenshotTriggered)
+        {
+            screenshotTriggered = false;
+            renderShiftViewport = 0;
+            renderScreenshot(renderFrame, app.width(), app.height(), "toy-geometry");
+        }
 
         if (globals.animate)
         {
@@ -519,7 +534,7 @@ int main(int argc, char* argv[])
             constexpr float tmax = 5.f;
             globals.t += (float)app.tic()*tmax/secondsPerCycle;
             while (globals.t >= tmax) globals.t -= tmax;
-        }      
+        }
     }
 
     return 0;

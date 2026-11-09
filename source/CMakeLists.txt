@@ -98,15 +98,15 @@ if (BUILD_GLTOYS_APPS)
     add_executable(toy-hello toy-hello.cpp ${imgui-impl-sources})
     target_link_libraries(toy-hello PRIVATE toylib imgui::imgui glfw Microsoft.GSL::GSL)
 
-    add_executable(toy-mnoise toy-mnoise.cpp GLFWApp.h GLFWApp.cpp MCubesObject.h MCubesObject.cpp MCubesObjectRenderer.h MCubesObjectRenderer.cpp ${imgui-impl-sources})
+    add_executable(toy-mnoise toy-mnoise.cpp GLFWApp.h GLFWApp.cpp renderScreenshot.h renderScreenshot.cpp MCubesObject.h MCubesObject.cpp MCubesObjectRenderer.h MCubesObjectRenderer.cpp ${imgui-impl-sources})
     target_link_libraries(toy-mnoise PRIVATE toylib imgui::imgui glfw Microsoft.GSL::GSL)
 
-    add_executable(toy-glitchsphere toy-glitchsphere.cpp GLFWApp.h GLFWApp.cpp GlitchSphereGeometry.h GlitchSphereGeometry.cpp ${imgui-impl-sources})
+    add_executable(toy-glitchsphere toy-glitchsphere.cpp GLFWApp.h GLFWApp.cpp renderScreenshot.h renderScreenshot.cpp GlitchSphereGeometry.h GlitchSphereGeometry.cpp ${imgui-impl-sources})
     target_link_libraries(toy-glitchsphere PRIVATE toylib imgui::imgui glfw Microsoft.GSL::GSL)
 
     add_executable(toy-geometry-cli toy-geometry-cli.cpp ${geometry-sources})
     
-    add_executable(toy-geometry toy-geometry.cpp ${geometry-sources} GLFWApp.h GLFWApp.cpp)
+    add_executable(toy-geometry toy-geometry.cpp ${geometry-sources} GLFWApp.h GLFWApp.cpp renderScreenshot.h renderScreenshot.cpp)
     target_link_libraries(toy-geometry PRIVATE toylib imgui::imgui glfw Microsoft.GSL::GSL)
 endif()
 

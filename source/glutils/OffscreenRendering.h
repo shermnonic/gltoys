@@ -22,7 +22,7 @@ public:
     void destroyGL();
 
 protected:
-    void downloadImageData(GLenum format=GL_RGB);
+    void downloadImageData(GLenum format);
     
 private:
     bool initialized = false;
