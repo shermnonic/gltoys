@@ -15,6 +15,7 @@
 #include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <thread>
@@ -22,6 +23,7 @@
 
 #include <imgui.h>
 #include "GLFWApp.h"
+#include "renderScreenshot.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -31,10 +33,7 @@
 
 #include <glutils/GLError.h>
 #include <glutils/GLSLProgram.h>
-#include <glutils/OffscreenRendering.h>
 #include <glutils/Trackball2.h>
-
-#include <utils/TGA.h>
 
 #include "MCubesObjectRenderer.h"
 
@@ -186,7 +185,6 @@ private:
     MeshShader m_shader{MeshVertexAttribute::Normal, GLFWApp::getGLSLVersionString()};
     bool m_isComputing = false;
 };
-
 
 int main(int argc, char* argv[])
 {
@@ -426,41 +424,7 @@ int main(int argc, char* argv[])
         if(trigger_offscreen_rendering_screenshot)
         {
             trigger_offscreen_rendering_screenshot = false;
-
-            auto getScreenshotFilename = []()
-            {
-                return L"toy-mnoise." + std::to_wstring(time(0)) + L".tga";
-            };
-
-            auto scaleLongestEdgeMaxSize = [](size_t width, size_t height) -> std::array<size_t, 2>
-            {
-                constexpr size_t MaxSize = 8096;
-                const double aspect = width /(double)height;
-                if(aspect >= 1.0) 
-                {
-                    return {MaxSize, static_cast<size_t>(MaxSize / aspect)};
-                }
-                else
-                {
-                    return {static_cast<size_t>(MaxSize * aspect), MaxSize};
-                }
-            };
-
-            const auto [width, height] = scaleLongestEdgeMaxSize((size_t)app.width(), (size_t)app.height());
-
-            OffscreenRendering renderer(width, height);
-            renderer.initGL();
-            renderer.renderBegin();
-
-            renderFrame((int)width, (int)height);
-
-            renderer.renderEnd();
-            renderer.getRawImageData();
-
-            auto format = renderer.getChannels()==4 ? TGAFormat::RGBA : TGAFormat::RGB;
-            saveTGA(std::filesystem::path(getScreenshotFilename()), format, renderer.getWidth(), renderer.getHeight(), renderer.getRawImageData());
-
-            renderer.destroyGL();
+            renderScreenshot(renderFrame, app.width(), app.height(), "toy-mnoise");
         }
 
         if (globals.animate)
