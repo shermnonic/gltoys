@@ -14,8 +14,8 @@ public:
 
     const uint8_t* getRawImageData() const;
 
-    size_t getWidth() const { return width; }
-    size_t getHeight() const { return height; }
+    size_t getWidth() const { return static_cast<std::size_t>(textureWidth); }
+    size_t getHeight() const { return static_cast<std::size_t>(textureHeight); }
     size_t getChannels() const { return 3; }
 
     void initGL();
@@ -26,8 +26,6 @@ protected:
     
 private:
     bool initialized = false;
-    size_t width = 4096;
-    size_t height = 2304;
     GLsizei textureWidth = 4096;
     GLsizei textureHeight = 4096;
     GL::GLTexture target;

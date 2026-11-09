@@ -4,22 +4,22 @@
 #include <iostream>
 
 OffscreenRendering::OffscreenRendering(size_t width, size_t height)
-: width(width)
-, height(height)
+: textureWidth(static_cast<GLsizei>(width))
+, textureHeight(static_cast<GLsizei>(height))
 {
-    textureWidth = std::max(textureWidth, static_cast<GLsizei>(width));
-    textureHeight = std::max(textureHeight, static_cast<GLsizei>(height));
 }
 
 void OffscreenRendering::initGL()
 {
+    bool const attachDepthBuffer = true;
+
     bool ok = true;
     ok |= target.create(GL_TEXTURE_2D);
     ok |= target.image(0, GL_RGBA32F, this->textureWidth, this->textureHeight,
                        0, GL_RGBA, GL_FLOAT, nullptr);
     if(ok)
     {
-        ok |= renderToTexture.init_no_depthbuffer(target.name());
+        ok |= renderToTexture.init(this->textureWidth, this->textureHeight, target.name(), attachDepthBuffer);
     }
     target.unbind();
 
