@@ -56,7 +56,9 @@ void OffscreenRendering::renderEnd()
 {
     if(initialized)
     {
-        downloadImageData();
+        glFlush();
+
+        downloadImageData(GL_BGR);
         renderToTexture.unbind();
     }
 }
