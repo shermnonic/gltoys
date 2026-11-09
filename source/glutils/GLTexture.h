@@ -1,8 +1,10 @@
 #ifndef GLTEXTURE_H
 #define GLTEXTURE_H
 #include "GLConfig.h"
-#include <stdexcept>
+
+#include <algorithm>
 #include <cassert>
+#include <stdexcept>
 
 #ifdef GL_NAMESPACE
 namespace GL
